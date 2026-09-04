@@ -22,6 +22,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string; user?: User }>;
   register: (userData: RegisterData) => Promise<{ success: boolean; message?: string; user?: User }>;
   logout: () => void;
+  switchRole: (role: UserRole) => Promise<void>;
   refreshUserData: () => void;
 }
 
@@ -124,6 +125,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('kala_auth_token');
   };
 
+  const switchRole = async (role: UserRole) => {
+    const creds: Record<UserRole, { email: string; pass: string }> = {
+      artisan: { email: 'artisan@demo.com', pass: 'artisan123' },
+      customer: { email: 'customer@demo.com', pass: 'customer123' },
+      b2b_buyer: { email: 'buyer@demo.com', pass: 'buyer123' },
+      admin: { email: 'admin@demo.com', pass: 'admin123' }
+    };
+    const c = creds[role];
+    if (c) {
+      await login(c.email, c.pass);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -133,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        switchRole,
         refreshUserData
       }}
     >
