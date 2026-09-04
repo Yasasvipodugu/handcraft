@@ -1,0 +1,5 @@
+Data Science is interesting.
+Python is easy to learn.
+R is widely used in data analysis.
+Machine Learning uses data.
+Cloud Computing is popular.
