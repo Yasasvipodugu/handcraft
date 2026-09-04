@@ -31,7 +31,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem('kala_current_user');
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      const isOldStock =
+        parsed.avatar?.includes('photo-1544005313') || parsed.avatar?.includes('photo-1494790108377');
+      const isDemo =
+        parsed.id?.includes('demo') ||
+        parsed.id === 'user-artisan-1' ||
+        parsed.id === 'user-customer-1';
+      if (isOldStock && !isDemo) {
+        parsed.avatar = '';
+        localStorage.setItem('kala_current_user', JSON.stringify(parsed));
+      }
+      return parsed;
     } catch (e) {
       return null;
     }

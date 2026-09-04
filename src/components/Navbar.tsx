@@ -358,11 +358,17 @@ export const Navbar: React.FC = () => {
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                   className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-full border border-stone-200 hover:border-amber-400 transition-all bg-stone-50"
                 >
-                  <img
-                    src={currentUser.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80'}
-                    alt={currentUser.name}
-                    className="w-7 h-7 rounded-full object-cover border border-amber-600/30"
-                  />
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
+                      className="w-7 h-7 rounded-full object-cover border border-amber-600/30"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-amber-700 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )}
                   <span className="hidden lg:inline text-xs font-semibold text-stone-800 max-w-[90px] truncate">
                     {currentUser.name}
                   </span>

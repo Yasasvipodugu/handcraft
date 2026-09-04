@@ -79,10 +79,7 @@ export const RegisterPage: React.FC = () => {
       role,
       location: location.trim(),
       craftType: role === 'artisan' ? craftType.trim() : undefined,
-      avatar:
-        role === 'artisan'
-          ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
-          : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'
+      avatar: ''
     });
     setLoading(false);
 

@@ -135,15 +135,17 @@ export const ArtisanDashboard: React.FC = () => {
            =================================================================== */}
         <aside className="lg:col-span-1 bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-6 sticky top-24">
           <div className="flex items-center gap-3 pb-4 border-b border-stone-100">
-            <img
-              src={
-                currentUser.avatar ||
-                currentArtisan?.avatarUrl ||
-                'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80'
-              }
-              alt={currentUser.name}
-              className="w-11 h-11 rounded-full object-cover border border-amber-400 shadow-xs"
-            />
+            {currentUser.avatar ? (
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                className="w-11 h-11 rounded-full object-cover border border-amber-400 shadow-xs"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-bold text-base shadow-xs">
+                {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <h3 className="font-black text-sm text-stone-900 truncate">{currentUser.name}</h3>
               <p className="text-[11px] text-amber-800 font-semibold truncate">
@@ -210,15 +212,17 @@ export const ArtisanDashboard: React.FC = () => {
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-amber-700 via-stone-800 to-amber-900 rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <img
-                src={
-                  currentUser.avatar ||
-                  currentArtisan?.avatarUrl ||
-                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
-                }
-                alt={currentUser.name}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-amber-400/50 shadow-md flex-shrink-0"
-              />
+              {currentUser.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-amber-400/50 shadow-md flex-shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-amber-600 to-stone-800 text-white flex items-center justify-center font-black text-2xl border-2 border-amber-400/50 shadow-md flex-shrink-0">
+                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+                </div>
+              )}
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl sm:text-2xl font-black tracking-tight">
@@ -517,14 +521,17 @@ export const ArtisanDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                 <div className="flex flex-col items-center text-center space-y-3 p-6 bg-stone-50 rounded-2xl border border-stone-200">
-                  <img
-                    src={
-                      currentUser.avatar ||
-                      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80'
-                    }
-                    alt={currentUser.name}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-amber-300 shadow-md"
-                  />
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
+                      className="w-24 h-24 rounded-full object-cover border-4 border-amber-300 shadow-md"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-black text-3xl border-4 border-amber-300 shadow-md">
+                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                  )}
                   <div>
                     <h4 className="font-black text-base text-stone-900">{currentUser.name}</h4>
                     <p className="text-xs text-amber-800 font-bold mt-0.5">Master Artisan</p>

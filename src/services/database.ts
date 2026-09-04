@@ -161,7 +161,7 @@ class KalaDatabase {
         phone: newUser.phone,
         email: newUser.email,
         bannerUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&auto=format&fit=crop&q=80',
-        avatarUrl: newUser.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80'
+        avatarUrl: newUser.avatar || ''
       };
       artisans.push(newArtisan);
       this.setTable('artisans', artisans);
@@ -218,11 +218,7 @@ class KalaDatabase {
       language: 'en',
       craftCategory: userData.craftType || undefined,
       craft_type: userData.craftType || undefined,
-      avatar:
-        userData.avatar ||
-        (userData.role === 'artisan'
-          ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
-          : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'),
+      avatar: userData.avatar || '',
       passwordHash: passwordHash,
       createdAt: new Date().toISOString()
     };
