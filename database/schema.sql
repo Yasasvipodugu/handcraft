@@ -1,4 +1,4 @@
--- KalaConnect AI - Smart India Hackathon SIH26090 Database Schema
+-- KalaConnect AI - Artisan Cataloging & Market Linkage Database Schema
 -- Database: MySQL 8.0+
 
 CREATE DATABASE IF NOT EXISTS kalaconnect_ai CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

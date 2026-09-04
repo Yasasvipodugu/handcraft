@@ -19,7 +19,8 @@ import {
   CheckCircle,
   Clock,
   Layers,
-  Shield
+  Shield,
+  Package
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -101,69 +102,148 @@ export const Navbar: React.FC = () => {
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
             <Link
-              to="/marketplace"
+              to="/"
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/marketplace')
+                isActive('/')
                   ? 'text-amber-800 bg-amber-50 font-semibold'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
               }`}
             >
-              <Compass className="w-4 h-4" />
-              <span>{t.navMarketplace}</span>
+              <span>Home</span>
             </Link>
 
-            {/* AI Product Studio - Highlighted Button */}
-            <Link
-              to="/artisan/studio"
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                location.pathname.includes('/artisan/studio')
-                  ? 'bg-gradient-to-r from-amber-700 to-stone-800 text-white shadow-sm font-semibold'
-                  : 'bg-amber-600/10 text-amber-900 hover:bg-amber-600/20 font-semibold border border-amber-300/60'
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-amber-600 animate-pulse" />
-              <span>{t.navStudio}</span>
-            </Link>
+            {/* Unauthenticated: Home, Explore, About */}
+            {!currentUser && (
+              <>
+                <Link
+                  to="/marketplace"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/marketplace')
+                      ? 'text-amber-800 bg-amber-50 font-semibold'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <Compass className="w-4 h-4" />
+                  <span>Explore</span>
+                </Link>
 
-            <Link
-              to="/b2b"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/b2b')
-                  ? 'text-amber-800 bg-amber-50 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
-              }`}
-            >
-              <Briefcase className="w-4 h-4" />
-              <span>{t.navB2B}</span>
-            </Link>
+                <Link
+                  to="/impact"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/impact')
+                      ? 'text-amber-800 bg-amber-50 font-semibold'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>About</span>
+                </Link>
+              </>
+            )}
 
-            <Link
-              to="/impact"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive('/impact')
-                  ? 'text-amber-800 bg-amber-50 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span>{t.ourImpact}</span>
-            </Link>
+            {/* Logged in Artisan: Home, My Dashboard, My Products, AI Studio */}
+            {currentUser?.role === 'artisan' && (
+              <>
+                <Link
+                  to="/artisan/dashboard"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/artisan/dashboard')
+                      ? 'text-amber-800 bg-amber-50 font-semibold'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>My Dashboard</span>
+                </Link>
 
-            {currentUser && (
+                <Link
+                  to="/artisan/products"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/artisan/products')
+                      ? 'text-amber-800 bg-amber-50 font-semibold'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <Package className="w-4 h-4" />
+                  <span>My Products</span>
+                </Link>
+
+                <Link
+                  to="/artisan/studio"
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                    location.pathname.includes('/artisan/studio')
+                      ? 'bg-gradient-to-r from-amber-700 to-stone-800 text-white shadow-sm font-semibold'
+                      : 'bg-amber-600/10 text-amber-900 hover:bg-amber-600/20 font-semibold border border-amber-300/60'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-amber-600 animate-pulse" />
+                  <span>AI Studio</span>
+                </Link>
+              </>
+            )}
+
+            {/* Logged in Customer: Home, Explore, My Profile / Orders */}
+            {currentUser?.role === 'customer' && (
+              <>
+                <Link
+                  to="/marketplace"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/marketplace')
+                      ? 'text-amber-800 bg-amber-50 font-semibold'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <Compass className="w-4 h-4" />
+                  <span>Explore</span>
+                </Link>
+
+                <Link
+                  to="/customer/dashboard"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/customer/dashboard')
+                      ? 'text-amber-800 bg-amber-50 font-semibold'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>My Dashboard</span>
+                </Link>
+
+                <Link
+                  to="/customer/orders"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive('/customer/orders')
+                      ? 'text-amber-800 bg-amber-50 font-semibold'
+                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>My Orders</span>
+                </Link>
+              </>
+            )}
+
+            {currentUser?.role === 'b2b_buyer' && (
               <Link
-                to={getDashboardPath()}
+                to="/b2b"
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname.includes('dashboard') || location.pathname.includes('admin') || location.pathname.includes('orders')
-                    ? currentUser.role === 'admin'
-                      ? 'text-purple-900 bg-purple-100 font-bold border border-purple-300'
-                      : 'text-amber-800 bg-amber-50 font-semibold'
-                    : currentUser.role === 'admin'
-                    ? 'text-purple-800 hover:text-purple-900 hover:bg-purple-50 font-semibold'
+                  isActive('/b2b')
+                    ? 'text-amber-800 bg-amber-50 font-semibold'
                     : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
                 }`}
               >
-                {currentUser.role === 'admin' ? <Shield className="w-4 h-4 text-purple-700" /> : <Layers className="w-4 h-4" />}
-                <span>{currentUser.role === 'admin' ? 'Admin Console' : t.navDashboard}</span>
+                <Briefcase className="w-4 h-4" />
+                <span>B2B Wholesale</span>
+              </Link>
+            )}
+
+            {currentUser?.role === 'admin' && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200"
+              >
+                <Shield className="w-4 h-4 text-purple-700" />
+                <span>Admin Console</span>
               </Link>
             )}
           </nav>
@@ -459,6 +539,18 @@ export const Navbar: React.FC = () => {
               >
                 {t.register}
               </Link>
+            </div>
+          )}
+
+          {currentUser && (
+            <div className="pt-3 border-t border-stone-200">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-rose-50 text-rose-700 text-sm font-semibold hover:bg-rose-100 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out ({currentUser.name})</span>
+              </button>
             </div>
           )}
         </div>

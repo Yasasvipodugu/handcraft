@@ -10,7 +10,10 @@ export interface User {
   district: string;
   language: string;
   craftCategory?: string;
+  craft_type?: string;
+  location?: string;
   avatar?: string;
+  passwordHash?: string;
   createdAt: string;
 }
 

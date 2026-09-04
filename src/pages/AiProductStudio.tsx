@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotifications } from '../context/NotificationContext';
 import { db } from '../services/database';
+import { api } from '../services/api';
 import { generateAICatalog, CRAFT_PRESETS } from '../services/aiCatalogService';
 import {
   processBackgroundReplacement,
@@ -474,11 +475,15 @@ export const AiProductStudio: React.FC = () => {
     const finalImage = enhancedImageDataUrl || productImage;
     const finalPrice = Number(customFinalPrice) || priceRecommendation.recommendedPrice;
 
+    const effectiveArtisanId = currentArtisan?.id || (currentUser ? `artisan-${currentUser.id}` : 'artisan-1');
+    const effectiveArtisanName = currentUser?.name || currentArtisan?.name || 'Kalyani Devi';
+    const effectiveLocation = currentUser?.location || (currentArtisan ? `${currentArtisan.village}, ${currentArtisan.state}` : 'Andhra Pradesh');
+
     const newProduct = db.addProduct({
-      artisanId: currentArtisan?.id || 'artisan-1',
-      artisanName: currentArtisan?.name || currentUser?.name || 'Kalyani Devi',
-      artisanLocation: `${currentArtisan?.village || 'Artisan Cluster'}, ${currentArtisan?.state || 'Andhra Pradesh'}`,
-      artisanVerified: currentArtisan?.verificationStatus === 'verified',
+      artisanId: effectiveArtisanId,
+      artisanName: effectiveArtisanName,
+      artisanLocation: effectiveLocation,
+      artisanVerified: true,
       name: productName,
       description: generatedDescription,
       category: category,
@@ -505,6 +510,24 @@ export const AiProductStudio: React.FC = () => {
         }
       }
     });
+
+    // Also sync to Flask API if active
+    if (currentUser?.id) {
+      api.addProduct(
+        {
+          name: productName,
+          product_name: productName,
+          category,
+          description: generatedDescription,
+          material,
+          price: finalPrice,
+          stock: 15,
+          image: finalImage,
+          craft_story: generatedDescription
+        },
+        currentUser.id
+      ).catch((err) => console.warn('Flask sync notice:', err));
+    }
 
     // Trigger celebratory confetti
     confetti({

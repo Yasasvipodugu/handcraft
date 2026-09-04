@@ -20,6 +20,26 @@ import {
 
 type EventListener = (data: any) => void;
 
+export async function hashPasswordClient(password: string): Promise<string> {
+  try {
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password + '_kala_salt_2026');
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch (e) {
+    // fallback
+  }
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    hash = (hash << 5) - hash + password.charCodeAt(i);
+    hash |= 0;
+  }
+  return `sha256_mock_${Math.abs(hash)}`;
+}
+
 class KalaDatabase {
   private listeners: Map<string, Set<EventListener>> = new Map();
 
@@ -150,6 +170,171 @@ class KalaDatabase {
     return newUser;
   }
 
+  public async registerUser(userData: {
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    confirmPassword?: string;
+    role: 'artisan' | 'customer' | 'b2b_buyer' | 'admin';
+    location: string;
+    craftType?: string;
+    avatar?: string;
+  }): Promise<{ success: boolean; message?: string; user?: User }> {
+    const emailClean = userData.email.trim().toLowerCase();
+    if (!userData.name.trim()) {
+      return { success: false, message: 'Full Name is required.' };
+    }
+    if (!emailClean || !emailClean.includes('@') || !emailClean.includes('.')) {
+      return { success: false, message: 'A valid email address is required.' };
+    }
+    if (!userData.password || userData.password.length < 6) {
+      return { success: false, message: 'Password must be at least 6 characters.' };
+    }
+    if (userData.confirmPassword && userData.password !== userData.confirmPassword) {
+      return { success: false, message: 'Passwords do not match.' };
+    }
+
+    const existing = this.getUserByEmail(emailClean);
+    if (existing) {
+      return { success: false, message: 'An account with this email already exists.' };
+    }
+
+    const passwordHash = await hashPasswordClient(userData.password);
+    const locationParts = userData.location.split(',').map((s) => s.trim());
+    const state = locationParts[locationParts.length - 1] || 'India';
+    const district = locationParts[0] || 'Cluster';
+
+    const users = this.getUsers();
+    const newUser: User = {
+      id: `user-${Date.now()}`,
+      name: userData.name.trim(),
+      email: emailClean,
+      phone: userData.phone || '',
+      role: userData.role,
+      state: state,
+      district: district,
+      location: userData.location,
+      language: 'en',
+      craftCategory: userData.craftType || undefined,
+      craft_type: userData.craftType || undefined,
+      avatar:
+        userData.avatar ||
+        (userData.role === 'artisan'
+          ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'),
+      passwordHash: passwordHash,
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    this.setTable('users', users);
+
+    if (newUser.role === 'artisan') {
+      const artisans = this.getArtisans();
+      const newArtisan: Artisan = {
+        id: `artisan-${newUser.id}`,
+        userId: newUser.id,
+        name: newUser.name,
+        craftName: userData.craftType || 'Traditional Indian Handicrafts',
+        craftCategory: userData.craftType || 'Crafts',
+        village: district,
+        district: district,
+        state: state,
+        experienceYears: 5,
+        bio: `${newUser.name} is a dedicated artisan from ${state}, practicing authentic ${userData.craftType || 'handicrafts'}.`,
+        culturalSignificance: 'Empowering generational artisan heritage.',
+        verificationStatus: 'verified',
+        rating: 5.0,
+        totalSales: 0,
+        profileViews: 1,
+        phone: newUser.phone,
+        email: newUser.email,
+        bannerUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&auto=format&fit=crop&q=80',
+        avatarUrl: newUser.avatar
+      };
+      artisans.unshift(newArtisan);
+      this.setTable('artisans', artisans);
+    }
+
+    return { success: true, user: newUser };
+  }
+
+  public async loginUser(
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; message?: string; user?: User }> {
+    const emailClean = email.trim().toLowerCase();
+    if (!emailClean || !password) {
+      return { success: false, message: 'Please provide both email and password.' };
+    }
+
+    const user = this.getUserByEmail(emailClean);
+    if (!user) {
+      return { success: false, message: 'No account found with this email. Please Sign Up.' };
+    }
+
+    const hashed = await hashPasswordClient(password);
+    const demoPasswords: Record<string, string> = {
+      'artisan@demo.com': 'artisan123',
+      'customer@demo.com': 'customer123',
+      'buyer@demo.com': 'buyer123',
+      'admin@demo.com': 'admin123'
+    };
+
+    const isDemoMatch = demoPasswords[emailClean] && demoPasswords[emailClean] === password;
+    const isHashMatch = user.passwordHash ? user.passwordHash === hashed : false;
+
+    if (!isDemoMatch && !isHashMatch && user.passwordHash) {
+      return { success: false, message: 'Incorrect password. Please try again.' };
+    }
+
+    return { success: true, user };
+  }
+
+  public syncUserFromBackend(backendUser: any) {
+    if (!backendUser || !backendUser.id) return;
+    const users = this.getUsers();
+    const idx = users.findIndex(
+      (u) => u.id === backendUser.id || u.email.toLowerCase() === backendUser.email?.toLowerCase()
+    );
+    if (idx >= 0) {
+      users[idx] = { ...users[idx], ...backendUser };
+    } else {
+      users.push(backendUser);
+    }
+    this.setTable('users', users);
+
+    if (backendUser.role === 'artisan') {
+      const artisans = this.getArtisans();
+      const aIdx = artisans.findIndex((a) => a.userId === backendUser.id || a.id === `artisan-${backendUser.id}`);
+      if (aIdx === -1) {
+        artisans.unshift({
+          id: `artisan-${backendUser.id}`,
+          userId: backendUser.id,
+          name: backendUser.name,
+          craftName: backendUser.craft_type || backendUser.craftCategory || 'Handicrafts',
+          craftCategory: backendUser.craft_type || 'Crafts',
+          village: backendUser.location || 'Cluster',
+          district: backendUser.district || backendUser.location || 'District',
+          state: backendUser.state || backendUser.location || 'State',
+          experienceYears: 5,
+          bio: `${backendUser.name} is an authentic artisan.`,
+          culturalSignificance: 'Traditional craftsmanship',
+          verificationStatus: 'verified',
+          rating: 5.0,
+          totalSales: 0,
+          profileViews: 1,
+          phone: backendUser.phone || '',
+          email: backendUser.email || '',
+          bannerUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&auto=format&fit=crop&q=80',
+          avatarUrl: backendUser.avatar
+        });
+        this.setTable('artisans', artisans);
+      }
+    }
+  }
+
   // --- ARTISANS ---
   public getArtisans(): Artisan[] {
     return this.getTable<Artisan>('artisans', INITIAL_ARTISANS);
@@ -251,23 +436,41 @@ class KalaDatabase {
     return newProduct;
   }
 
-  public updateProduct(id: string, updates: Partial<Product>): Product | null {
+  public updateProduct(id: string, updates: Partial<Product>, requestingUserId?: string): Product | null {
     const products = this.getProducts();
     const index = products.findIndex((p) => p.id === id);
     if (index === -1) return null;
+
+    if (requestingUserId) {
+      const prod = products[index];
+      const isOwner =
+        prod.artisanId === requestingUserId ||
+        prod.artisanId === `artisan-${requestingUserId}` ||
+        requestingUserId === 'user-admin-1';
+      if (!isOwner) return null;
+    }
+
     products[index] = { ...products[index], ...updates };
     this.setTable('products', products);
     return products[index];
   }
 
-  public deleteProduct(id: string): boolean {
+  public deleteProduct(id: string, requestingUserId?: string): boolean {
     const products = this.getProducts();
-    const filtered = products.filter((p) => p.id !== id);
-    if (filtered.length !== products.length) {
-      this.setTable('products', filtered);
-      return true;
+    const target = products.find((p) => p.id === id);
+    if (!target) return false;
+
+    if (requestingUserId) {
+      const isOwner =
+        target.artisanId === requestingUserId ||
+        target.artisanId === `artisan-${requestingUserId}` ||
+        requestingUserId === 'user-admin-1';
+      if (!isOwner) return false;
     }
-    return false;
+
+    const filtered = products.filter((p) => p.id !== id);
+    this.setTable('products', filtered);
+    return true;
   }
 
   public incrementProductViews(id: string): void {

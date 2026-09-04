@@ -1,15 +1,27 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Artisan, UserRole } from '../types';
 import { db } from '../services/database';
-import { INITIAL_USERS } from '../data/initialSeedData';
+import { api } from '../services/api';
+
+interface RegisterData {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword?: string;
+  role: 'artisan' | 'customer' | 'b2b_buyer' | 'admin';
+  location: string;
+  craftType?: string;
+  avatar?: string;
+}
 
 interface AuthContextType {
   currentUser: User | null;
   currentArtisan: Artisan | null;
-  login: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
-  register: (userData: Omit<User, 'id' | 'createdAt'>) => Promise<{ success: boolean; user?: User }>;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string; user?: User }>;
+  register: (userData: RegisterData) => Promise<{ success: boolean; message?: string; user?: User }>;
   logout: () => void;
-  switchRole: (role: UserRole) => void;
   refreshUserData: () => void;
 }
 
@@ -17,25 +29,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('kala_current_user');
-    return saved ? JSON.parse(saved) : db.getUserByEmail('artisan@demo.com') || null;
+    try {
+      const saved = localStorage.getItem('kala_current_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
   const [currentArtisan, setCurrentArtisan] = useState<Artisan | null>(null);
 
   const refreshUserData = () => {
     if (currentUser) {
-      const freshUser = db.getUserById(currentUser.id);
+      const freshUser = db.getUserById(currentUser.id) || db.getUserByEmail(currentUser.email);
       if (freshUser) {
         setCurrentUser(freshUser);
         localStorage.setItem('kala_current_user', JSON.stringify(freshUser));
         if (freshUser.role === 'artisan') {
-          const artisan = db.getArtisanByUserId(freshUser.id);
+          const artisan = db.getArtisanByUserId(freshUser.id) || db.getArtisanById(`artisan-${freshUser.id}`);
           setCurrentArtisan(artisan || null);
         } else {
           setCurrentArtisan(null);
         }
       }
+    } else {
+      setCurrentArtisan(null);
     }
   };
 
@@ -47,70 +65,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsub;
   }, [currentUser?.id]);
 
-  const login = async (email: string, _password?: string) => {
-    const user = db.getUserByEmail(email);
-    if (!user) {
-      return { success: false, message: 'Invalid credentials. Please use demo accounts or register.' };
+  const login = async (email: string, password: string) => {
+    const res = await api.login(email, password);
+    if (res.success && res.user) {
+      setCurrentUser(res.user);
+      localStorage.setItem('kala_current_user', JSON.stringify(res.user));
+      if (res.token) {
+        localStorage.setItem('kala_auth_token', res.token);
+      }
+
+      if (res.user.role === 'artisan') {
+        const artisan = db.getArtisanByUserId(res.user.id) || db.getArtisanById(`artisan-${res.user.id}`);
+        setCurrentArtisan(artisan || null);
+      } else {
+        setCurrentArtisan(null);
+      }
+      return { success: true, user: res.user };
     }
-    setCurrentUser(user);
-    localStorage.setItem('kala_current_user', JSON.stringify(user));
-    if (user.role === 'artisan') {
-      const artisan = db.getArtisanByUserId(user.id);
-      setCurrentArtisan(artisan || null);
-    } else {
-      setCurrentArtisan(null);
-    }
-    return { success: true };
+    return { success: false, message: res.message || 'Invalid email or password.' };
   };
 
-  const register = async (userData: Omit<User, 'id' | 'createdAt'>) => {
-    const existing = db.getUserByEmail(userData.email);
-    if (existing) {
-      return { success: false, message: 'An account with this email already exists.' };
+  const register = async (userData: RegisterData) => {
+    const res = await api.register(userData);
+    if (res.success && res.user) {
+      setCurrentUser(res.user);
+      localStorage.setItem('kala_current_user', JSON.stringify(res.user));
+      if (res.token) {
+        localStorage.setItem('kala_auth_token', res.token);
+      }
+
+      if (res.user.role === 'artisan') {
+        const artisan = db.getArtisanByUserId(res.user.id) || db.getArtisanById(`artisan-${res.user.id}`);
+        setCurrentArtisan(artisan || null);
+      } else {
+        setCurrentArtisan(null);
+      }
+      return { success: true, user: res.user, message: res.message };
     }
-    const newUser = db.createUser(userData);
-    setCurrentUser(newUser);
-    localStorage.setItem('kala_current_user', JSON.stringify(newUser));
-    if (newUser.role === 'artisan') {
-      const artisan = db.getArtisanByUserId(newUser.id);
-      setCurrentArtisan(artisan || null);
-    }
-    return { success: true, user: newUser };
+    return { success: false, message: res.message || 'Registration failed.' };
   };
 
   const logout = () => {
     setCurrentUser(null);
     setCurrentArtisan(null);
     localStorage.removeItem('kala_current_user');
-  };
-
-  const switchRole = (role: UserRole) => {
-    const demoEmails: Record<UserRole, string> = {
-      artisan: 'artisan@demo.com',
-      customer: 'customer@demo.com',
-      b2b_buyer: 'buyer@demo.com',
-      admin: 'admin@demo.com'
-    };
-    let targetUser = db.getUserByEmail(demoEmails[role]);
-    if (!targetUser) {
-      const seedUser = INITIAL_USERS.find((u) => u.email.toLowerCase() === demoEmails[role].toLowerCase());
-      if (seedUser) {
-        const allUsers = db.getUsers();
-        allUsers.push(seedUser);
-        localStorage.setItem('kala_users', JSON.stringify(allUsers));
-        targetUser = seedUser;
-      }
-    }
-    if (targetUser) {
-      setCurrentUser(targetUser);
-      localStorage.setItem('kala_current_user', JSON.stringify(targetUser));
-      if (role === 'artisan') {
-        const artisan = db.getArtisanByUserId(targetUser.id);
-        setCurrentArtisan(artisan || null);
-      } else {
-        setCurrentArtisan(null);
-      }
-    }
+    localStorage.removeItem('kala_auth_token');
   };
 
   return (
@@ -118,10 +117,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         currentUser,
         currentArtisan,
+        isAuthenticated: !!currentUser,
         login,
         register,
         logout,
-        switchRole,
         refreshUserData
       }}
     >

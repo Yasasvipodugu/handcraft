@@ -19,9 +19,16 @@ import {
 } from 'lucide-react';
 
 export const ArtisanProductsPage: React.FC = () => {
-  const { currentArtisan } = useAuth();
+  const { currentArtisan, currentUser } = useAuth();
   const { showToast } = useNotifications();
   const navigate = useNavigate();
+
+  // Protect route
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+    }
+  }, [currentUser, navigate]);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -29,10 +36,19 @@ export const ArtisanProductsPage: React.FC = () => {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const loadProducts = () => {
-    if (currentArtisan) {
-      setProducts(db.getProductsByArtisan(currentArtisan.id));
+    const artisanId = currentArtisan?.id || (currentUser ? `artisan-${currentUser.id}` : null);
+    if (artisanId || currentUser?.id) {
+      const all = db.getProducts();
+      const myProds = all.filter(
+        (p) =>
+          p.artisanId === artisanId ||
+          p.artisanId === currentUser?.id ||
+          p.artisanId === `artisan-${currentUser?.id}` ||
+          (currentArtisan && p.artisanId === currentArtisan.id)
+      );
+      setProducts(myProds);
     } else {
-      setProducts(db.getProducts());
+      setProducts([]);
     }
   };
 
@@ -40,14 +56,16 @@ export const ArtisanProductsPage: React.FC = () => {
     loadProducts();
     const unsub = db.subscribe('products', loadProducts);
     return unsub;
-  }, [currentArtisan?.id]);
+  }, [currentArtisan?.id, currentUser?.id]);
 
   const handleDelete = (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
-      const deleted = db.deleteProduct(id);
+      const deleted = db.deleteProduct(id, currentUser?.id);
       if (deleted) {
         showToast('Product Deleted', `"${name}" has been removed from your catalog.`, 'info');
         loadProducts();
+      } else {
+        showToast('Action Forbidden', 'You do not have permission to delete this product.', 'error');
       }
     }
   };
@@ -90,7 +108,7 @@ export const ArtisanProductsPage: React.FC = () => {
     e.preventDefault();
     if (!editingProduct) return;
 
-    db.updateProduct(editingProduct.id, {
+    const updated = db.updateProduct(editingProduct.id, {
       name: editingProduct.name,
       publishedPrice: Number(editingProduct.publishedPrice),
       category: editingProduct.category,
@@ -98,11 +116,15 @@ export const ArtisanProductsPage: React.FC = () => {
       stock: Number(editingProduct.stock),
       description: editingProduct.description,
       status: editingProduct.status
-    });
+    }, currentUser?.id);
 
-    showToast('Product Updated! ✨', `"${editingProduct.name}" details saved successfully.`, 'success');
-    setEditingProduct(null);
-    loadProducts();
+    if (updated) {
+      showToast('Product Updated! ✨', `"${editingProduct.name}" details saved successfully.`, 'success');
+      setEditingProduct(null);
+      loadProducts();
+    } else {
+      showToast('Action Forbidden', 'You do not have permission to edit this product.', 'error');
+    }
   };
 
   const filtered = products.filter(
