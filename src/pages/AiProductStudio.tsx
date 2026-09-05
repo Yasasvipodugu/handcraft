@@ -8,6 +8,7 @@ import { api } from '../services/api';
 import { generateAICatalog, CRAFT_PRESETS } from '../services/aiCatalogService';
 import {
   processBackgroundReplacement,
+  recompositeStudioBackdrop,
   BACKGROUND_STYLES,
   BackgroundStyle,
   ProcessingStage,
@@ -51,7 +52,11 @@ import {
   Edit3,
   SlidersHorizontal,
   Maximize2,
-  Download
+  Download,
+  Paintbrush,
+  Eraser,
+  Undo2,
+  Redo2
 } from 'lucide-react';
 
 export const AiProductStudio: React.FC = () => {
@@ -132,6 +137,16 @@ export const AiProductStudio: React.FC = () => {
   const lastProcessedKeyRef = useRef<string>('');
   const isProcessingRef = useRef<boolean>(false);
 
+  // Manual Cutout Touch-Up State
+  const [rawCutoutDataUrl, setRawCutoutDataUrl] = useState<string>('');
+  const [isMaskEditing, setIsMaskEditing] = useState<boolean>(false);
+  const [brushMode, setBrushMode] = useState<'restore' | 'erase'>('restore');
+  const [brushSize, setBrushSize] = useState<number>(26);
+  const [undoStack, setUndoStack] = useState<string[]>([]);
+  const [redoStack, setRedoStack] = useState<string[]>([]);
+  const touchCanvasRef = useRef<HTMLCanvasElement>(null);
+  const isPaintingRef = useRef<boolean>(false);
+
   // STEP 5: Price Recommendation State
   const [materialCost, setMaterialCost] = useState<number>(850);
   const [laborCost, setLaborCost] = useState<number>(1000);
@@ -157,15 +172,248 @@ export const AiProductStudio: React.FC = () => {
     }
   }, []);
 
-  // Recalculate price when parameters change
+  // Update dynamic price calculations
   useEffect(() => {
-    const hourlyRate = timeRequiredHours > 0 ? Math.round(laborCost / timeRequiredHours) : 140;
-    const calc = calculatePriceRecommendation(materialCost, timeRequiredHours, hourlyRate, otherCost);
+    const calc = calculatePriceRecommendation(materialCost, timeRequiredHours, laborCost, otherCost);
     setPriceRecommendation(calc);
     if (selectedPriceTier === 'minimum') setCustomFinalPrice(calc.minimumPrice);
     else if (selectedPriceTier === 'recommended') setCustomFinalPrice(calc.recommendedPrice);
     else if (selectedPriceTier === 'premium') setCustomFinalPrice(calc.premiumPrice);
   }, [materialCost, laborCost, otherCost, timeRequiredHours, desiredProfitMargin, selectedPriceTier]);
+
+  const origImgRef = useRef<HTMLImageElement | null>(null);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  const strokePatternRef = useRef<CanvasPattern | null>(null);
+
+  // Synchronize manual touch-up edits to the studio compositing
+  const applyTouchUpChange = useCallback(
+    async (newCutoutUrl: string) => {
+      setCutoutDataUrl(newCutoutUrl);
+      try {
+        const newComposited = await recompositeStudioBackdrop(
+          newCutoutUrl,
+          category,
+          generatedDescription,
+          backgroundStyle,
+          aspectRatio
+        );
+        setEnhancedImageDataUrl(newComposited);
+      } catch (err) {
+        console.warn('Recomposite backdrop failed:', err);
+      }
+    },
+    [category, generatedDescription, backgroundStyle, aspectRatio]
+  );
+
+  // Initialize and open Touch-up Editor
+  const startTouchUpEditing = useCallback(() => {
+    setIsMaskEditing(true);
+    setTimeout(() => {
+      const canvas = touchCanvasRef.current;
+      if (!canvas) return;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        canvas.width = img.naturalWidth || 800;
+        canvas.height = img.naturalHeight || 800;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        }
+        setUndoStack([canvas.toDataURL('image/png')]);
+        setRedoStack([]);
+
+        const origImg = new Image();
+        origImg.crossOrigin = 'anonymous';
+        origImg.onload = () => {
+          origImgRef.current = origImg;
+          const offCanvas = document.createElement('canvas');
+          offCanvas.width = canvas.width;
+          offCanvas.height = canvas.height;
+          const offCtx = offCanvas.getContext('2d');
+          if (offCtx && ctx) {
+            offCtx.drawImage(origImg, 0, 0, canvas.width, canvas.height);
+            strokePatternRef.current = ctx.createPattern(offCanvas, 'no-repeat');
+          }
+        };
+        origImg.src = originalImage;
+      };
+      img.src = cutoutDataUrl || originalImage;
+    }, 60);
+  }, [cutoutDataUrl, originalImage]);
+
+  // Pointer event helpers for Touch-up Canvas
+  const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = touchCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = touchCanvasRef.current;
+    if (!canvas) return;
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+    isPaintingRef.current = true;
+    const { x, y } = getCanvasCoords(e);
+    lastPosRef.current = { x, y };
+
+    // Record undo state before this stroke
+    const currentState = canvas.toDataURL('image/png');
+    setUndoStack((prev) => [...prev.slice(-15), currentState]);
+    setRedoStack([]);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const radius = brushSize / 2;
+    if (brushMode === 'restore' && strokePatternRef.current) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = strokePatternRef.current;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else if (brushMode === 'erase') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isPaintingRef.current) return;
+    const canvas = touchCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const { x, y } = getCanvasCoords(e);
+    const lastPos = lastPosRef.current || { x, y };
+
+    if (brushMode === 'restore' && strokePatternRef.current) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = strokePatternRef.current;
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(lastPos.x, lastPos.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.restore();
+    } else if (brushMode === 'erase') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(lastPos.x, lastPos.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    lastPosRef.current = { x, y };
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isPaintingRef.current) return;
+    isPaintingRef.current = false;
+    lastPosRef.current = null;
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    const canvas = touchCanvasRef.current;
+    if (canvas) {
+      const newCutout = canvas.toDataURL('image/png');
+      applyTouchUpChange(newCutout);
+    }
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+    const canvas = touchCanvasRef.current;
+    if (!canvas) return;
+    const currentData = canvas.toDataURL('image/png');
+    const prevState = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((prev) => [...prev, currentData]);
+
+    const img = new Image();
+    img.onload = () => {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        applyTouchUpChange(prevState);
+      }
+    };
+    img.src = prevState;
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    const canvas = touchCanvasRef.current;
+    if (!canvas) return;
+    const currentData = canvas.toDataURL('image/png');
+    const nextState = redoStack[redoStack.length - 1];
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((prev) => [...prev, currentData]);
+
+    const img = new Image();
+    img.onload = () => {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        applyTouchUpChange(nextState);
+      }
+    };
+    img.src = nextState;
+  };
+
+  const handleResetToAiCutout = () => {
+    if (!rawCutoutDataUrl) return;
+    const canvas = touchCanvasRef.current;
+    if (!canvas) return;
+    const currentState = canvas.toDataURL('image/png');
+    setUndoStack((prev) => [...prev.slice(-15), currentState]);
+
+    const img = new Image();
+    img.onload = () => {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        applyTouchUpChange(rawCutoutDataUrl);
+        showToast('Cutout Reset', 'Reverted to initial AI segmentation.', 'info');
+      }
+    };
+    img.src = rawCutoutDataUrl;
+  };
+
+  const handleDoneTouchUp = () => {
+    setIsMaskEditing(false);
+    showToast('Cutout Saved ✨', 'Studio backdrop refreshed with your fine-tuned cutout.', 'success');
+  };
 
   // Trigger Real Background Replacement
   const executeBackgroundReplacement = useCallback(
@@ -178,7 +426,8 @@ export const AiProductStudio: React.FC = () => {
       sens: IsolationSensitivity = isolationSensitivity,
       force: boolean = false
     ) => {
-      const processingKey = `${imgSrc.substring(0, 50)}-${cat}-${desc}-${bgStyle}-${ratio}-${sens}`;
+      const imageSig = `${imgSrc.length}_${imgSrc.slice(-30)}`;
+      const processingKey = `${imageSig}-${cat}-${desc}-${bgStyle}-${ratio}-${sens}`;
       if (!force && lastProcessedKeyRef.current === processingKey) {
         return; // Already generated for these exact parameters
       }
@@ -206,9 +455,13 @@ export const AiProductStudio: React.FC = () => {
           sens
         );
 
-        setCutoutDataUrl(result.cutoutDataUrl || result.foregroundDataUrl);
+        const cutout = result.cutoutDataUrl || result.foregroundDataUrl;
+        setCutoutDataUrl(cutout);
+        setRawCutoutDataUrl(cutout);
         setEnhancedImageDataUrl(result.compositedDataUrl);
         setDetectedStudioName(result.studioName);
+        setUndoStack([]);
+        setRedoStack([]);
         showToast('Studio Backdrop Created ✨', `${result.studioName} ready.`, 'success');
       } catch (err) {
         console.error('Background replacement failed:', err);
@@ -282,10 +535,25 @@ export const AiProductStudio: React.FC = () => {
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      lastProcessedKeyRef.current = '';
+      setCutoutDataUrl('');
+      setRawCutoutDataUrl('');
+      setEnhancedImageDataUrl('');
+      setUndoStack([]);
+      setRedoStack([]);
       setOriginalImage(dataUrl);
       setProductImage(dataUrl);
       stopCamera();
       showToast('Photo Captured! 📸', 'Your product image was captured successfully.', 'success');
+      executeBackgroundReplacement(
+        dataUrl,
+        category,
+        generatedDescription,
+        backgroundStyle,
+        aspectRatio,
+        isolationSensitivity,
+        true
+      );
     }
   };
 
@@ -304,9 +572,24 @@ export const AiProductStudio: React.FC = () => {
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         const result = uploadEvent.target?.result as string;
+        lastProcessedKeyRef.current = '';
+        setCutoutDataUrl('');
+        setRawCutoutDataUrl('');
+        setEnhancedImageDataUrl('');
+        setUndoStack([]);
+        setRedoStack([]);
         setOriginalImage(result);
         setProductImage(result);
         showToast('Photo Uploaded', 'Product image loaded into studio.', 'success');
+        executeBackgroundReplacement(
+          result,
+          category,
+          generatedDescription,
+          backgroundStyle,
+          aspectRatio,
+          isolationSensitivity,
+          true
+        );
       };
       reader.readAsDataURL(file);
     }
@@ -998,88 +1281,233 @@ export const AiProductStudio: React.FC = () => {
                 </div>
 
                 {/* =================================================================
-                    INTERACTIVE BEFORE / AFTER SPLIT SLIDER
+                    INTERACTIVE TOUCH-UP MASK EDITOR OR BEFORE / AFTER SPLIT SLIDER
                    ================================================================= */}
-                <div className="space-y-3">
-                  <div
-                    ref={sliderContainerRef}
-                    onMouseDown={handleMouseDown}
-                    onTouchMove={handleTouchMove}
-                    className={`relative w-full aspect-square sm:aspect-4/3 max-h-[520px] rounded-3xl overflow-hidden select-none cursor-ew-resize border-2 border-stone-800 shadow-2xl ${
-                      activeStageMode === 'remove-bg' || backgroundStyle === 'transparent'
-                        ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
-                        : 'bg-stone-950'
-                    }`}
-                  >
-                    {/* Layer 1: Transformed Image (Cutout in Phase 1, Studio in Phase 2) */}
+                {isMaskEditing ? (
+                  <div className="bg-stone-900 border-2 border-amber-600 rounded-3xl p-4 sm:p-6 text-white space-y-4 shadow-2xl animate-in fade-in">
+                    {/* Toolbar Header */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-stone-800 pb-4">
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-2 bg-amber-950 text-amber-400 px-3 py-1 rounded-full text-xs font-bold border border-amber-700/50">
+                          <Paintbrush className="w-3.5 h-3.5" />
+                          <span>{translate('Manual Cutout Touch-Up Studio')}</span>
+                        </div>
+                        <h4 className="text-sm sm:text-base font-extrabold text-white">
+                          {translate('Fine-Tune Product Cutout with Smart Brush')}
+                        </h4>
+                        <p className="text-xs text-stone-400">
+                          {translate('Brush over any component you want to keep, or erase leftover background.')}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={handleUndo}
+                          disabled={undoStack.length === 0}
+                          className="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          title="Undo"
+                        >
+                          <Undo2 className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleRedo}
+                          disabled={redoStack.length === 0}
+                          className="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          title="Redo"
+                        >
+                          <Redo2 className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleResetToAiCutout}
+                          className="px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Reset to original AI cutout"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>{translate('Reset Cutout')}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDoneTouchUp}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>{translate('Done Touch-Up')}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Tool Selector & Brush Settings */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-stone-950/70 p-3 rounded-2xl border border-stone-800">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setBrushMode('restore')}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                            brushMode === 'restore'
+                              ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-400'
+                              : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                          }`}
+                        >
+                          <Paintbrush className="w-4 h-4" />
+                          <span>{translate('Restore Product (Brush)')}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setBrushMode('erase')}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                            brushMode === 'erase'
+                              ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400'
+                              : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                          }`}
+                        >
+                          <Eraser className="w-4 h-4" />
+                          <span>{translate('Remove Background (Eraser)')}</span>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-stone-400 font-semibold">{translate('Brush Size')}:</span>
+                        <input
+                          type="range"
+                          min={6}
+                          max={70}
+                          value={brushSize}
+                          onChange={(e) => setBrushSize(Number(e.target.value))}
+                          className="w-28 sm:w-36 accent-amber-500 cursor-pointer"
+                        />
+                        <div
+                          className="w-6 h-6 rounded-full border border-amber-400/80 flex items-center justify-center bg-stone-800"
+                          title={`Brush radius: ${brushSize}px`}
+                        >
+                          <div
+                            className="rounded-full bg-amber-400"
+                            style={{
+                              width: `${Math.max(4, Math.min(22, brushSize / 2))}px`,
+                              height: `${Math.max(4, Math.min(22, brushSize / 2))}px`
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs text-stone-300 font-mono w-8 text-right">{brushSize}px</span>
+                      </div>
+                    </div>
+
+                    {/* Canvas Container with Checkerboard Background */}
+                    <div className="relative w-full aspect-square sm:aspect-4/3 max-h-[520px] rounded-2xl overflow-hidden bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px] flex items-center justify-center border border-stone-800 shadow-inner">
+                      <canvas
+                        ref={touchCanvasRef}
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                        className="w-full h-full object-contain cursor-crosshair touch-none select-none"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-stone-400 px-1">
+                      <p>
+                        💡 <strong>{translate('How it works')}:</strong>{' '}
+                        {translate(
+                          'Click and drag across the image. When set to "Restore", it paints the original product details back. When set to "Remove", it erases backgrounds.'
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleDoneTouchUp}
+                        className="text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+                      >
+                        {translate('Save and return to studio ➔')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
                     <div
-                      className={`absolute inset-0 w-full h-full flex items-center justify-center ${
+                      ref={sliderContainerRef}
+                      onMouseDown={handleMouseDown}
+                      onTouchMove={handleTouchMove}
+                      className={`relative w-full aspect-square sm:aspect-4/3 max-h-[520px] rounded-3xl overflow-hidden select-none cursor-ew-resize border-2 border-stone-800 shadow-2xl ${
                         activeStageMode === 'remove-bg' || backgroundStyle === 'transparent'
                           ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
-                          : 'bg-stone-900'
+                          : 'bg-stone-950'
                       }`}
                     >
-                      <img
-                        src={
-                          activeStageMode === 'remove-bg'
-                            ? (cutoutDataUrl || enhancedImageDataUrl || originalImage)
-                            : (enhancedImageDataUrl || originalImage)
-                        }
-                        alt="Transformed Product View"
-                        className="w-full h-full object-contain pointer-events-none select-none"
-                      />
-                      <div className="absolute top-4 right-4 bg-amber-800/90 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-black shadow-md border border-amber-500/30 flex items-center gap-1.5 z-20">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        <span>
-                          {activeStageMode === 'remove-bg'
-                            ? translate('ORIGINAL BACKGROUND REMOVED (CUTOUT)')
-                            : `${translate('STUDIO: ')}${detectedStudioName.toUpperCase()}`}
-                        </span>
+                      {/* Layer 1: Transformed Image (Cutout in Phase 1, Studio in Phase 2) */}
+                      <div
+                        className={`absolute inset-0 w-full h-full flex items-center justify-center ${
+                          activeStageMode === 'remove-bg' || backgroundStyle === 'transparent'
+                            ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
+                            : 'bg-stone-900'
+                        }`}
+                      >
+                        <img
+                          src={
+                            activeStageMode === 'remove-bg'
+                              ? (cutoutDataUrl || enhancedImageDataUrl || originalImage)
+                              : (enhancedImageDataUrl || originalImage)
+                          }
+                          alt="Transformed Product View"
+                          className="w-full h-full object-contain pointer-events-none select-none"
+                        />
+                        <div className="absolute top-4 right-4 bg-amber-800/90 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-black shadow-md border border-amber-500/30 flex items-center gap-1.5 z-20">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>
+                            {activeStageMode === 'remove-bg'
+                              ? translate('ORIGINAL BACKGROUND REMOVED (CUTOUT)')
+                              : `${translate('STUDIO: ')}${detectedStudioName.toUpperCase()}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Layer 2: Original Uploaded Image (Clipped seamlessly by CSS clipPath) */}
+                      <div
+                        className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10"
+                        style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+                      >
+                        <img
+                          src={originalImage}
+                          alt="Original Raw"
+                          className="w-full h-full object-contain filter brightness-95 pointer-events-none select-none"
+                        />
+                        <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-xs text-stone-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-md border border-stone-700 z-20">
+                          {translate('ORIGINAL PHOTO')}
+                        </div>
+                      </div>
+
+                      {/* Divider Line & Draggable Handle */}
+                      <div
+                        className="absolute inset-y-0 w-1 bg-white shadow-[0_0_12px_rgba(0,0,0,0.6)] z-20 flex items-center justify-center pointer-events-none"
+                        style={{ left: `${sliderPosition}%` }}
+                      >
+                        <div className="w-10 h-10 -ml-0.5 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xl border-2 border-white ring-2 ring-black/50">
+                          ↔
+                        </div>
                       </div>
                     </div>
 
-                    {/* Layer 2: Original Uploaded Image (Clipped seamlessly by CSS clipPath) */}
-                    <div
-                      className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10"
-                      style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
-                    >
-                      <img
-                        src={originalImage}
-                        alt="Original Raw"
-                        className="w-full h-full object-contain filter brightness-95 pointer-events-none select-none"
+                    {/* Range Slider for Accessibility */}
+                    <div className="flex items-center gap-3 px-2">
+                      <span className="text-[11px] font-black text-stone-500 uppercase">{translate('Original Photo')}</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={sliderPosition}
+                        onChange={(e) => setSliderPosition(Number(e.target.value))}
+                        className="flex-1 accent-amber-700 cursor-pointer"
                       />
-                      <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-xs text-stone-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-md border border-stone-700 z-20">
-                        {translate('ORIGINAL PHOTO')}
-                      </div>
-                    </div>
-
-                    {/* Divider Line & Draggable Handle */}
-                    <div
-                      className="absolute inset-y-0 w-1 bg-white shadow-[0_0_12px_rgba(0,0,0,0.6)] z-20 flex items-center justify-center pointer-events-none"
-                      style={{ left: `${sliderPosition}%` }}
-                    >
-                      <div className="w-10 h-10 -ml-0.5 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xl border-2 border-white ring-2 ring-black/50">
-                        ↔
-                      </div>
+                      <span className="text-[11px] font-black text-amber-800 uppercase">
+                        {activeStageMode === 'remove-bg' ? translate('Background Removed') : translate('AI Studio Backdrop')}
+                      </span>
                     </div>
                   </div>
-
-                  {/* Range Slider for Accessibility */}
-                  <div className="flex items-center gap-3 px-2">
-                    <span className="text-[11px] font-black text-stone-500 uppercase">{translate('Original Photo')}</span>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={sliderPosition}
-                      onChange={(e) => setSliderPosition(Number(e.target.value))}
-                      className="flex-1 accent-amber-700 cursor-pointer"
-                    />
-                    <span className="text-[11px] font-black text-amber-800 uppercase">
-                      {activeStageMode === 'remove-bg' ? translate('Background Removed') : translate('AI Studio Backdrop')}
-                    </span>
-                  </div>
-                </div>
+                )}
 
                 {/* Phase 1 Completion Banner & Prompt to Proceed */}
                 {activeStageMode === 'remove-bg' && (
@@ -1095,6 +1523,14 @@ export const AiProductStudio: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={startTouchUpEditing}
+                        className="px-3.5 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-900 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-100/60 shadow-xs cursor-pointer transition-colors"
+                      >
+                        <Paintbrush className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>{translate('Fine-Tune Cutout')}</span>
+                      </button>
                       <button
                         type="button"
                         onClick={handleDownloadCutout}
@@ -1190,6 +1626,16 @@ export const AiProductStudio: React.FC = () => {
                     >
                       <Download className="w-3.5 h-3.5 text-emerald-700" />
                       <span>{translate('Download Cutout')}</span>
+                    </button>
+
+                    {/* 6. Touch Up Cutout */}
+                    <button
+                      type="button"
+                      onClick={startTouchUpEditing}
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                    >
+                      <Paintbrush className="w-3.5 h-3.5 text-amber-700" />
+                      <span>{translate('Touch Up Cutout')}</span>
                     </button>
                   </div>
 

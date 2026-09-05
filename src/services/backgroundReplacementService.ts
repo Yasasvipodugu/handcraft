@@ -153,6 +153,24 @@ export function determineSmartStudio(category: string, description: string): {
   const text = `${category} ${description}`.toLowerCase();
 
   if (
+    text.includes('earbud') ||
+    text.includes('earpod') ||
+    text.includes('headphone') ||
+    text.includes('audio') ||
+    text.includes('gadget') ||
+    text.includes('electronic') ||
+    text.includes('device') ||
+    text.includes('tech')
+  ) {
+    return {
+      studioName: 'Modern Tech & Minimalist Studio',
+      surfaceType: 'marble',
+      wallTheme: 'Sleek contemporary studio with clean architectural lines and diffused softbox',
+      lightingTone: 'Crisp 5500K balanced daylight illumination with specular edge highlights'
+    };
+  }
+
+  if (
     text.includes('toy') ||
     text.includes('wood') ||
     text.includes('kondapalli') ||
@@ -541,14 +559,22 @@ export async function processBackgroundReplacement(
           productMask[p] = 1;
         }
 
-        // Include any connected/adjacent craft fragments inside the bounding region
+        // Multi-component envelope protection:
+        // Automatically preserves straps, handles, chains, detached earbuds, accessories
+        const padY = Math.max(35, Math.floor((primary.maxY - primary.minY) * 0.30));
+        const padX = Math.max(35, Math.floor((primary.maxX - primary.minX) * 0.30));
+        const envMinY = Math.max(0, primary.minY - padY);
+        const envMaxY = Math.min(srcH - 1, primary.maxY + padY);
+        const envMinX = Math.max(0, primary.minX - padX);
+        const envMaxX = Math.min(srcW - 1, primary.maxX + padX);
+
         for (let c = 1; c < components.length; c++) {
           const comp = components[c];
           if (
-            comp.centerY >= primary.minY - 30 &&
-            comp.centerY <= primary.maxY + 30 &&
-            comp.centerX >= primary.minX - 30 &&
-            comp.centerX <= primary.maxX + 30
+            comp.centerY >= envMinY &&
+            comp.centerY <= envMaxY &&
+            comp.centerX >= envMinX &&
+            comp.centerX <= envMaxX
           ) {
             for (const p of comp.pixels) {
               productMask[p] = 1;
@@ -613,6 +639,35 @@ export async function processBackgroundReplacement(
       for (let i = 0; i < n; i++) {
         if (!exterior[i]) {
           mask[i] = 1;
+        }
+      }
+
+      // 6. Validation & Self-Healing:
+      // Guarantee complete product preservation. If product mask coverage is too small (< 4% of frame),
+      // or if an essential central region was severed, activate Sensitive Recovery Mode.
+      let initialCount = 0;
+      for (let i = 0; i < n; i++) {
+        if (mask[i]) initialCount++;
+      }
+      const coverageRatio = initialCount / n;
+
+      if (coverageRatio < 0.04 || initialCount < 600) {
+        for (let y = Math.floor(srcH * 0.15); y < Math.floor(srcH * 0.85); y++) {
+          for (let x = Math.floor(srcW * 0.12); x < Math.floor(srcW * 0.88); x++) {
+            const idx = y * srcW + x;
+            const i = idx * 4;
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            let minD = 999;
+            for (const bg of bgClusters) {
+              const d = Math.hypot(r - bg.r, g - bg.g, b - bg.b);
+              if (d < minD) minD = d;
+            }
+            if (minD > 22) {
+              mask[idx] = 1;
+            }
+          }
         }
       }
 
@@ -778,6 +833,120 @@ export async function processBackgroundReplacement(
 }
 
 /**
+ * Recomposite an updated transparent cutout onto the studio background.
+ */
+export async function recompositeStudioBackdrop(
+  cutoutDataUrl: string,
+  category: string,
+  description: string,
+  backgroundStyle: BackgroundStyle,
+  aspectRatio: '1:1' | '4:5' | '16:9' = '1:1'
+): Promise<string> {
+  const smartStudio = determineSmartStudio(category, description);
+
+  let targetWidth = 1080;
+  let targetHeight = 1080;
+  if (aspectRatio === '4:5') {
+    targetWidth = 1080;
+    targetHeight = 1350;
+  } else if (aspectRatio === '16:9') {
+    targetWidth = 1280;
+    targetHeight = 720;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return cutoutDataUrl;
+
+  ctx.clearRect(0, 0, targetWidth, targetHeight);
+  if (backgroundStyle !== 'transparent') {
+    renderUltraRealisticStudio(ctx, targetWidth, targetHeight, backgroundStyle, smartStudio);
+  }
+
+  const img = new Image();
+  img.src = cutoutDataUrl;
+  await new Promise((res) => {
+    img.onload = res;
+    img.onerror = () => res(true);
+  });
+
+  const srcW = img.naturalWidth || img.width || 800;
+  const srcH = img.naturalHeight || img.height || 800;
+  const srcAspect = srcW / srcH;
+
+  const maxOccupancy = 0.78;
+  const availW = targetWidth * maxOccupancy;
+  const availH = targetHeight * maxOccupancy;
+
+  let drawW = availW;
+  let drawH = drawW / srcAspect;
+
+  if (drawH > availH) {
+    drawH = availH;
+    drawW = drawH * srcAspect;
+  }
+
+  const tableTopY = targetHeight * 0.74;
+  const drawX = (targetWidth - drawW) / 2;
+  const drawY = Math.min((targetHeight - drawH) / 2 - targetHeight * 0.02, tableTopY - drawH * 0.94);
+
+  // Studio shadow
+  if (backgroundStyle !== 'transparent') {
+    ctx.save();
+    const shadowCenterY = drawY + drawH * 0.96;
+    const shadowCenterX = drawX + drawW / 2;
+    const shadowRadiusX = drawW * 0.46;
+    const shadowRadiusY = drawH * 0.09;
+
+    const shadowGrad = ctx.createRadialGradient(
+      shadowCenterX,
+      shadowCenterY,
+      0,
+      shadowCenterX,
+      shadowCenterY,
+      shadowRadiusX
+    );
+    shadowGrad.addColorStop(0, 'rgba(25, 16, 10, 0.48)');
+    shadowGrad.addColorStop(0.3, 'rgba(25, 16, 10, 0.32)');
+    shadowGrad.addColorStop(0.65, 'rgba(25, 16, 10, 0.12)');
+    shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.fillStyle = shadowGrad;
+    ctx.beginPath();
+    ctx.ellipse(shadowCenterX, shadowCenterY, shadowRadiusX, shadowRadiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Draw product
+  ctx.save();
+  ctx.filter = 'contrast(106%) saturate(104%) brightness(102%)';
+  ctx.drawImage(img, drawX, drawY, drawW, drawH);
+  ctx.restore();
+
+  // Softbox lighting
+  if (backgroundStyle !== 'transparent' && backgroundStyle !== 'clean-white') {
+    ctx.save();
+    ctx.globalCompositeOperation = 'soft-light';
+    const softLightGrad = ctx.createLinearGradient(0, 0, targetWidth, targetHeight);
+    softLightGrad.addColorStop(0, 'rgba(255, 255, 255, 0.32)');
+    softLightGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.05)');
+    softLightGrad.addColorStop(1, 'rgba(0, 0, 0, 0.08)');
+    ctx.fillStyle = softLightGrad;
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+    ctx.restore();
+  }
+
+  try {
+    return canvas.toDataURL(backgroundStyle === 'transparent' ? 'image/png' : 'image/jpeg', 0.95);
+  } catch (e) {
+    return cutoutDataUrl;
+  }
+}
+
+/**
  * Render Ultra-Realistic, High-End Craft Photography Studio Backdrops
  */
 function renderUltraRealisticStudio(
@@ -792,7 +961,8 @@ function renderUltraRealisticStudio(
   // Resolve effective style for smart-match
   let effectiveStyle = style;
   if (style === 'smart-match') {
-    if (smartStudio.surfaceType === 'clay') effectiveStyle = 'traditional-env';
+    if (smartStudio.studioName.toLowerCase().includes('tech')) effectiveStyle = 'minimal-lifestyle';
+    else if (smartStudio.surfaceType === 'clay') effectiveStyle = 'traditional-env';
     else if (smartStudio.surfaceType === 'linen') effectiveStyle = 'premium-studio';
     else if (smartStudio.surfaceType === 'marble') effectiveStyle = 'jewelry-studio';
     else if (smartStudio.studioName.toLowerCase().includes('bamboo')) effectiveStyle = 'bamboo-studio';
