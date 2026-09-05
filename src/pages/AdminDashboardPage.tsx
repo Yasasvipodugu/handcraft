@@ -637,11 +637,17 @@ export const AdminDashboardPage: React.FC = () => {
                         className="p-5 rounded-2xl border border-stone-200 bg-amber-50/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                       >
                         <div className="flex items-center gap-4">
-                          <img
-                            src={artisan.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'}
-                            alt={artisan.name}
-                            className="w-14 h-14 rounded-2xl object-cover border border-amber-300 flex-shrink-0"
-                          />
+                          {artisan.avatarUrl ? (
+                            <img
+                              src={artisan.avatarUrl}
+                              alt={artisan.name}
+                              className="w-14 h-14 rounded-2xl object-cover border border-amber-300 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-bold text-lg border border-amber-300 flex-shrink-0">
+                              {artisan.name ? artisan.name.charAt(0).toUpperCase() : 'A'}
+                            </div>
+                          )}
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="font-bold text-sm text-stone-900">{artisan.name}</h4>
@@ -765,11 +771,17 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredUsers.map((u) => (
                   <div key={u.id} className="p-4 rounded-2xl border border-stone-200 bg-stone-50/70 flex items-start gap-3.5">
-                    <img
-                      src={u.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80'}
-                      alt={u.name}
-                      className="w-12 h-12 rounded-xl object-cover border border-stone-300 flex-shrink-0"
-                    />
+                    {u.avatar ? (
+                      <img
+                        src={u.avatar}
+                        alt={u.name}
+                        className="w-12 h-12 rounded-xl object-cover border border-stone-300 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-bold text-sm border border-stone-300 flex-shrink-0">
+                        {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <h4 className="font-bold text-sm text-stone-900 truncate">{u.name}</h4>
@@ -843,11 +855,17 @@ export const AdminDashboardPage: React.FC = () => {
                 {filteredArtisans.map((artisan) => (
                   <div key={artisan.id} className="p-5 rounded-2xl border border-stone-200 bg-stone-50/70 space-y-3">
                     <div className="flex items-start gap-4">
-                      <img
-                        src={artisan.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'}
-                        alt={artisan.name}
-                        className="w-14 h-14 rounded-2xl object-cover border border-amber-300 flex-shrink-0"
-                      />
+                      {artisan.avatarUrl ? (
+                        <img
+                          src={artisan.avatarUrl}
+                          alt={artisan.name}
+                          className="w-14 h-14 rounded-2xl object-cover border border-amber-300 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-bold text-lg border border-amber-300 flex-shrink-0">
+                          {artisan.name ? artisan.name.charAt(0).toUpperCase() : 'A'}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-sm text-stone-900">{artisan.name}</h4>
@@ -920,11 +938,17 @@ export const AdminDashboardPage: React.FC = () => {
                   const custSpent = custOrders.reduce((sum, o) => sum + o.total, 0);
                   return (
                     <div key={customer.id} className="p-4 rounded-2xl border border-stone-200 bg-stone-50/70 flex items-start gap-4">
-                      <img
-                        src={customer.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80'}
-                        alt={customer.name}
-                        className="w-12 h-12 rounded-xl object-cover border border-stone-300 flex-shrink-0"
-                      />
+                      {customer.avatar ? (
+                        <img
+                          src={customer.avatar}
+                          alt={customer.name}
+                          className="w-12 h-12 rounded-xl object-cover border border-stone-300 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-stone-800 to-amber-800 text-white flex items-center justify-center font-bold text-sm border border-stone-300 flex-shrink-0">
+                          {customer.name ? customer.name.charAt(0).toUpperCase() : 'C'}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-sm text-stone-900">{customer.name}</h4>
                         <p className="text-xs text-stone-500 mt-0.5">{customer.email}</p>
@@ -961,11 +985,17 @@ export const AdminDashboardPage: React.FC = () => {
                   return (
                     <div key={buyer.id} className="p-5 rounded-2xl border border-stone-200 bg-stone-50/70 space-y-3">
                       <div className="flex items-start gap-4">
-                        <img
-                          src={buyer.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80'}
-                          alt={buyer.name}
-                          className="w-12 h-12 rounded-xl object-cover border border-stone-300 flex-shrink-0"
-                        />
+                        {buyer.avatar ? (
+                          <img
+                            src={buyer.avatar}
+                            alt={buyer.name}
+                            className="w-12 h-12 rounded-xl object-cover border border-stone-300 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-700 to-stone-900 text-white flex items-center justify-center font-bold text-sm border border-stone-300 flex-shrink-0">
+                            {buyer.name ? buyer.name.charAt(0).toUpperCase() : 'B'}
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className="font-bold text-sm text-stone-900">{buyer.name}</h4>
@@ -1218,11 +1248,17 @@ export const AdminDashboardPage: React.FC = () => {
                     className="p-5 rounded-2xl border border-stone-200 bg-stone-50/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                   >
                     <div className="flex items-center gap-4">
-                      <img
-                        src={artisan.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'}
-                        alt={artisan.name}
-                        className="w-14 h-14 rounded-2xl object-cover border border-stone-300 flex-shrink-0"
-                      />
+                      {artisan.avatarUrl ? (
+                        <img
+                          src={artisan.avatarUrl}
+                          alt={artisan.name}
+                          className="w-14 h-14 rounded-2xl object-cover border border-stone-300 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-bold text-lg border border-stone-300 flex-shrink-0">
+                          {artisan.name ? artisan.name.charAt(0).toUpperCase() : 'A'}
+                        </div>
+                      )}
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-sm text-stone-900">{artisan.name}</h4>

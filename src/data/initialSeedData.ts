@@ -11,7 +11,7 @@ export const INITIAL_USERS: User[] = [
     district: 'Krishna',
     language: 'te',
     craftCategory: 'Bamboo Crafts & Weaving',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    avatar: '',
     createdAt: '2024-01-15T09:00:00Z'
   },
   {
@@ -23,7 +23,7 @@ export const INITIAL_USERS: User[] = [
     state: 'Maharashtra',
     district: 'Mumbai',
     language: 'en',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    avatar: '',
     createdAt: '2024-02-10T11:30:00Z'
   },
   {
@@ -35,7 +35,7 @@ export const INITIAL_USERS: User[] = [
     state: 'Delhi',
     district: 'New Delhi',
     language: 'en',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    avatar: '',
     createdAt: '2024-01-20T14:00:00Z'
   },
   {
@@ -47,7 +47,7 @@ export const INITIAL_USERS: User[] = [
     state: 'Karnataka',
     district: 'Bengaluru',
     language: 'en',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    avatar: '',
     createdAt: '2024-01-01T08:00:00Z'
   }
 ];

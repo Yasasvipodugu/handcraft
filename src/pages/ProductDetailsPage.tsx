@@ -184,11 +184,17 @@ export const ProductDetailsPage: React.FC = () => {
               {/* Artisan Profile Card */}
               <div className="bg-stone-50/80 p-4 rounded-2xl border border-stone-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={artisan?.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80'}
-                    alt={product.artisanName}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-amber-600/30"
-                  />
+                  {artisan?.avatarUrl ? (
+                    <img
+                      src={artisan.avatarUrl}
+                      alt={product.artisanName}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-amber-600/30"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-bold text-base border-2 border-amber-600/30 shadow-xs">
+                      {product.artisanName ? product.artisanName.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center gap-1.5">
                       <Link

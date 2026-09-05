@@ -436,11 +436,17 @@ export const CustomerDashboardPage: React.FC = () => {
                     key={artisan.id}
                     className="p-4 rounded-2xl border border-stone-200 bg-stone-50/60 flex items-start gap-3.5"
                   >
-                    <img
-                      src={artisan.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80'}
-                      alt={artisan.name}
-                      className="w-14 h-14 rounded-2xl object-cover border border-amber-300 shadow-xs flex-shrink-0"
-                    />
+                    {artisan.avatarUrl ? (
+                      <img
+                        src={artisan.avatarUrl}
+                        alt={artisan.name}
+                        className="w-14 h-14 rounded-2xl object-cover border border-amber-300 shadow-xs flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-bold text-lg border border-amber-300 shadow-xs flex-shrink-0">
+                        {artisan.name ? artisan.name.charAt(0).toUpperCase() : 'A'}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0 space-y-1">
                       <h4 className="font-extrabold text-sm text-stone-900 truncate">{artisan.name}</h4>
                       <p className="text-xs text-amber-800 font-bold truncate">{artisan.craftName}</p>

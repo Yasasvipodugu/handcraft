@@ -34,13 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem('kala_current_user');
       if (!saved) return null;
       const parsed = JSON.parse(saved);
-      const isOldStock =
-        parsed.avatar?.includes('photo-1544005313') || parsed.avatar?.includes('photo-1494790108377');
-      const isDemo =
-        parsed.id?.includes('demo') ||
-        parsed.id === 'user-artisan-1' ||
-        parsed.id === 'user-customer-1';
-      if (isOldStock && !isDemo) {
+      if (parsed.avatar && (parsed.avatar.includes('unsplash.com') || parsed.avatar.includes('photo-'))) {
         parsed.avatar = '';
         localStorage.setItem('kala_current_user', JSON.stringify(parsed));
       }
@@ -56,6 +50,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser) {
       const freshUser = db.getUserById(currentUser.id) || db.getUserByEmail(currentUser.email);
       if (freshUser) {
+        if (freshUser.avatar && (freshUser.avatar.includes('unsplash.com') || freshUser.avatar.includes('photo-'))) {
+          freshUser.avatar = '';
+        }
         setCurrentUser(freshUser);
         localStorage.setItem('kala_current_user', JSON.stringify(freshUser));
         if (freshUser.role === 'artisan') {

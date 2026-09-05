@@ -52,7 +52,7 @@ class KalaDatabase {
       this.resetToDemoData();
       return;
     }
-    // Auto-heal seed users if any are missing
+    // Auto-heal seed users and strip any stock photos from all user accounts
     const users = this.getUsers();
     let updated = false;
     for (const seed of INITIAL_USERS) {
@@ -61,8 +61,43 @@ class KalaDatabase {
         updated = true;
       }
     }
+    // Purge unwanted default stock avatars from all accounts
+    for (const u of users) {
+      if (u.avatar && (u.avatar.includes('unsplash.com') || u.avatar.includes('photo-1544005313') || u.avatar.includes('photo-1494790108377'))) {
+        u.avatar = '';
+        updated = true;
+      }
+    }
     if (updated) {
       this.setTable('users', users);
+    }
+
+    // Purge unwanted stock avatars from created artisans
+    const artisans = this.getArtisans();
+    let aUpdated = false;
+    for (const a of artisans) {
+      const isDemoArtisan = a.id === 'artisan-1' || a.id?.startsWith('artisan-demo-');
+      if (!isDemoArtisan && a.avatarUrl) {
+        a.avatarUrl = '';
+        aUpdated = true;
+      }
+    }
+    if (aUpdated) {
+      this.setTable('artisans', artisans);
+    }
+
+    // Sanitize saved current user in localStorage
+    try {
+      const savedUser = localStorage.getItem('kala_current_user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed.avatar && (parsed.avatar.includes('unsplash.com') || parsed.avatar.includes('photo-1544005313') || parsed.avatar.includes('photo-1494790108377'))) {
+          parsed.avatar = '';
+          localStorage.setItem('kala_current_user', JSON.stringify(parsed));
+        }
+      }
+    } catch (e) {
+      // ignore
     }
   }
 

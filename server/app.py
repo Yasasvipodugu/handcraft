@@ -113,7 +113,7 @@ def seed_demo_data(cursor):
         "artisan",
         "Kondapalli, Andhra Pradesh",
         "Kondapalli Wooden Toys & Dolls",
-        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+        "",
         now
     ))
 
@@ -131,7 +131,7 @@ def seed_demo_data(cursor):
         "customer",
         "Bengaluru, Karnataka",
         None,
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+        "",
         now
     ))
 

@@ -452,11 +452,17 @@ export const LandingPage: React.FC = () => {
                 key={artisan.id}
                 className="bg-stone-50 rounded-2xl p-5 border border-stone-200 hover:border-amber-400 hover:shadow-lg transition-all flex flex-col items-center text-center group"
               >
-                <img
-                  src={artisan.avatarUrl}
-                  alt={artisan.name}
-                  className="w-20 h-20 rounded-full object-cover border-2 border-amber-600/30 group-hover:scale-105 transition-transform"
-                />
+                {artisan.avatarUrl ? (
+                  <img
+                    src={artisan.avatarUrl}
+                    alt={artisan.name}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-amber-600/30 group-hover:scale-105 transition-transform"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-black text-2xl border-2 border-amber-600/30 shadow-xs group-hover:scale-105 transition-transform">
+                    {artisan.name ? artisan.name.charAt(0).toUpperCase() : 'A'}
+                  </div>
+                )}
                 <h4 className="text-base font-bold text-stone-900 mt-3">{artisan.name}</h4>
                 <p className="text-xs font-semibold text-amber-800">{artisan.craftName}</p>
                 <p className="text-[11px] text-stone-500 mt-1">{artisan.village}, {artisan.state}</p>

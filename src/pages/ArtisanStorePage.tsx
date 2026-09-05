@@ -69,11 +69,17 @@ export const ArtisanStorePage: React.FC = () => {
         {/* Artisan Header Card */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-xl flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            <img
-              src={artisan.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80'}
-              alt={artisan.name}
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-white shadow-xl flex-shrink-0"
-            />
+            {artisan.avatarUrl ? (
+              <img
+                src={artisan.avatarUrl}
+                alt={artisan.name}
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-white shadow-xl flex-shrink-0"
+              />
+            ) : (
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr from-amber-700 to-stone-800 text-white flex items-center justify-center font-black text-3xl sm:text-4xl border-4 border-white shadow-xl flex-shrink-0">
+                {artisan.name ? artisan.name.charAt(0).toUpperCase() : 'A'}
+              </div>
+            )}
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900">{artisan.name}</h1>
