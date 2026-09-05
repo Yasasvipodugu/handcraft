@@ -50,7 +50,8 @@ import {
   X,
   Edit3,
   SlidersHorizontal,
-  Maximize2
+  Maximize2,
+  Download
 } from 'lucide-react';
 
 export const AiProductStudio: React.FC = () => {
@@ -121,6 +122,8 @@ export const AiProductStudio: React.FC = () => {
   const [sliderPosition, setSliderPosition] = useState<number>(50); // 0 to 100%
   const [isDraggingSlider, setIsDraggingSlider] = useState<boolean>(false);
   const [enhancedImageDataUrl, setEnhancedImageDataUrl] = useState<string>('');
+  const [cutoutDataUrl, setCutoutDataUrl] = useState<string>('');
+  const [activeStageMode, setActiveStageMode] = useState<'remove-bg' | 'change-bg'>('remove-bg');
   const [isProcessingBackground, setIsProcessingBackground] = useState<boolean>(false);
   const [currentStage, setCurrentStage] = useState<ProcessingStage>(PROCESSING_STAGES[0]);
   const [detectedStudioName, setDetectedStudioName] = useState<string>('Luxury Watch & Horology Studio');
@@ -203,6 +206,7 @@ export const AiProductStudio: React.FC = () => {
           sens
         );
 
+        setCutoutDataUrl(result.cutoutDataUrl || result.foregroundDataUrl);
         setEnhancedImageDataUrl(result.compositedDataUrl);
         setDetectedStudioName(result.studioName);
         showToast('Studio Backdrop Created ✨', `${result.studioName} ready.`, 'success');
@@ -555,6 +559,16 @@ export const AiProductStudio: React.FC = () => {
     setIsPublished(true);
     setCurrentStep(7);
     showToast('Product Published! 🚀', 'Your craft is now live on My Products, your storefront, and the marketplace.', 'success');
+  };
+
+  const handleDownloadCutout = () => {
+    const link = document.createElement('a');
+    link.href = cutoutDataUrl || originalImage;
+    link.download = 'kalaconnect-cutout.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Cutout Downloaded! 📥', 'Isolated transparent PNG saved to your device.', 'success');
   };
 
   return (
@@ -934,6 +948,55 @@ export const AiProductStudio: React.FC = () => {
                   </div>
                 )}
 
+                {/* TWO-PHASE WORKFLOW TABS: FIRST REMOVE BACKGROUND, THEN CHANGE BACKGROUND */}
+                <div className="bg-stone-100 p-1.5 rounded-2xl border border-stone-200 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveStageMode('remove-bg')}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      activeStageMode === 'remove-bg'
+                        ? 'bg-white text-stone-900 shadow-sm border border-stone-200'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                      activeStageMode === 'remove-bg' ? 'bg-amber-800 text-white' : 'bg-stone-200 text-stone-700'
+                    }`}>
+                      1
+                    </span>
+                    <span>Phase 1: Remove Original Background (Cutout)</span>
+                    {cutoutDataUrl && (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full">
+                        ✓ Removed
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveStageMode('change-bg');
+                      const styleSelector = document.getElementById('studio-environment-selector');
+                      styleSelector?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      activeStageMode === 'change-bg'
+                        ? 'bg-amber-800 text-white shadow-sm'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                      activeStageMode === 'change-bg' ? 'bg-white text-amber-900' : 'bg-stone-200 text-stone-700'
+                    }`}>
+                      2
+                    </span>
+                    <span>Phase 2: Change Background (AI Studio)</span>
+                    <span className="text-[10px] bg-amber-500/30 text-amber-200 font-bold px-2 py-0.5 rounded-full truncate max-w-[110px]">
+                      {detectedStudioName}
+                    </span>
+                  </button>
+                </div>
+
                 {/* =================================================================
                     INTERACTIVE BEFORE / AFTER SPLIT SLIDER
                    ================================================================= */}
@@ -943,27 +1006,35 @@ export const AiProductStudio: React.FC = () => {
                     onMouseDown={handleMouseDown}
                     onTouchMove={handleTouchMove}
                     className={`relative w-full aspect-square sm:aspect-4/3 max-h-[520px] rounded-3xl overflow-hidden select-none cursor-ew-resize border-2 border-stone-800 shadow-2xl ${
-                      backgroundStyle === 'transparent'
+                      activeStageMode === 'remove-bg' || backgroundStyle === 'transparent'
                         ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
                         : 'bg-stone-950'
                     }`}
                   >
-                    {/* Layer 1: AI Enhanced Transformed Studio Image */}
+                    {/* Layer 1: Transformed Image (Cutout in Phase 1, Studio in Phase 2) */}
                     <div
                       className={`absolute inset-0 w-full h-full flex items-center justify-center ${
-                        backgroundStyle === 'transparent'
+                        activeStageMode === 'remove-bg' || backgroundStyle === 'transparent'
                           ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
                           : 'bg-stone-900'
                       }`}
                     >
                       <img
-                        src={enhancedImageDataUrl || originalImage}
-                        alt="AI Enhanced Studio"
+                        src={
+                          activeStageMode === 'remove-bg'
+                            ? (cutoutDataUrl || enhancedImageDataUrl || originalImage)
+                            : (enhancedImageDataUrl || originalImage)
+                        }
+                        alt="Transformed Product View"
                         className="w-full h-full object-contain"
                       />
                       <div className="absolute top-4 right-4 bg-amber-800/90 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-black shadow-md border border-amber-500/30 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        <span>AI ENHANCED STUDIO</span>
+                        <span>
+                          {activeStageMode === 'remove-bg'
+                            ? 'ORIGINAL BACKGROUND REMOVED (CUTOUT)'
+                            : `STUDIO: ${detectedStudioName.toUpperCase()}`}
+                        </span>
                       </div>
                     </div>
 
@@ -1012,11 +1083,50 @@ export const AiProductStudio: React.FC = () => {
                       onChange={(e) => setSliderPosition(Number(e.target.value))}
                       className="flex-1 accent-amber-700 cursor-pointer"
                     />
-                    <span className="text-[11px] font-black text-amber-800 uppercase">AI Studio</span>
+                    <span className="text-[11px] font-black text-amber-800 uppercase">
+                      {activeStageMode === 'remove-bg' ? 'Background Removed' : 'AI Studio Backdrop'}
+                    </span>
                   </div>
                 </div>
 
-                {/* EXACT 5 ACTION BUTTONS FOR BEFORE / AFTER */}
+                {/* Phase 1 Completion Banner & Prompt to Proceed */}
+                {activeStageMode === 'remove-bg' && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-xs">
+                        <CheckCircle className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                        <span>Phase 1 Complete: Original Background Stripped Clean</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-800">
+                        Cardboard packaging, logos, blue text, shadows, and room clutter have been eliminated. You can now download the cutout or change the background in Phase 2.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleDownloadCutout}
+                        className="px-3.5 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-900 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-100/60 shadow-xs cursor-pointer transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Download PNG</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveStageMode('change-bg');
+                          const styleSelector = document.getElementById('studio-environment-selector');
+                          styleSelector?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                      >
+                        <span>Change Background ➔</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ACTION BUTTONS FOR BEFORE / AFTER */}
                 <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 bg-stone-100 rounded-2xl border border-stone-200">
                   <div className="flex flex-wrap items-center gap-2">
                     {/* 1. Retake Photo */}
@@ -1049,6 +1159,7 @@ export const AiProductStudio: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
+                        setActiveStageMode('change-bg');
                         const styleSelector = document.getElementById('studio-environment-selector');
                         styleSelector?.scrollIntoView({ behavior: 'smooth' });
                         showToast('Studio Environments', 'Select your preferred studio setting below.', 'info');
@@ -1078,15 +1189,29 @@ export const AiProductStudio: React.FC = () => {
                       <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
                       <span>Regenerate</span>
                     </button>
+
+                    {/* 5. Download Cutout PNG */}
+                    <button
+                      type="button"
+                      onClick={handleDownloadCutout}
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Download Cutout</span>
+                    </button>
                   </div>
 
-                  {/* 5. Use This Photo */}
+                  {/* 6. Use This Photo */}
                   <button
                     type="button"
                     onClick={() => {
-                      if (enhancedImageDataUrl) setProductImage(enhancedImageDataUrl);
+                      const finalChosen =
+                        activeStageMode === 'remove-bg' && cutoutDataUrl
+                          ? cutoutDataUrl
+                          : enhancedImageDataUrl || cutoutDataUrl || originalImage;
+                      setProductImage(finalChosen);
                       setCurrentStep(3);
-                      showToast('Photo Confirmed! 📸', 'AI Studio product photo locked for catalog.', 'success');
+                      showToast('Photo Confirmed! 📸', 'Product photo locked for catalog.', 'success');
                     }}
                     className="px-6 py-2.5 min-h-[44px] rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-98 flex items-center gap-1.5 cursor-pointer"
                   >

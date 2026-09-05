@@ -26,6 +26,11 @@ export interface AICatalogResult {
 
 export const CRAFT_PRESETS = [
   {
+    label: 'Earbuds Case (Flipkart Box Test)',
+    image: './assets/products/sample_gadget_case.jpg',
+    voiceText: 'This is a matte black TWS earbuds case with smooth curved edges and magnetic closure. Tested on real-world cardboard packaging.'
+  },
+  {
     label: 'Artisan Rose Gold Watch',
     image: './assets/products/artisan_watch.jpg',
     voiceText: 'This is a handcrafted rose gold analog watch with a minimalist dial, scratch-resistant crystal, and adjustable stainless steel mesh strap. Assembled by skilled horology artisans.'
@@ -73,6 +78,38 @@ export async function generateAICatalog(
   const text = (inputDescription || '').toLowerCase();
 
   // Pattern detection for domain-specific handicraft extraction
+  if (text.includes('earbuds') || text.includes('earphone') || text.includes('tws') || text.includes('gadget') || text.includes('audio case')) {
+    return {
+      productName: 'Ergonomic Matte Black Smart Audio Charging Case',
+      description:
+        'A precision-molded pocket gadget charging case featuring a silky matte-finish exterior, magnetic snap closure, and subtle status illumination. Designed for everyday ergonomic utility with scratch-resistant polymer construction.',
+      category: 'Jewelry & Watches',
+      material: 'Impact-Resistant Matte Polycarbonate & Neodymium Magnetic Core',
+      craftType: 'Precision Molding & Hand-Buffed Satin Finish',
+      estimatedSize: '62 mm Width x 48 mm Height x 26 mm Depth (Weight: 45g)',
+      keywords: ['earbuds case', 'gadget case', 'matte black audio', 'magnetic charging case', 'pocket tech'],
+      tags: ['Satin Finish', 'Magnetic Closure', 'Compact Utility', 'Modern Gadget'],
+      productHighlights: [
+        'Durable matte polycarbonate with smudge-resistant satin texture',
+        'Precision magnetic snap lid with seamless haptic closure',
+        'Compact pocket profile engineered for everyday portable use',
+        'Engineered internal cavity with high-retention magnetic seat'
+      ],
+      suggestedCostBreakdown: {
+        materialCost: 450,
+        labourHours: 2.0,
+        hourlyRate: 200,
+        otherCost: 250
+      },
+      translations: {
+        te: {
+          name: 'ఎర్గోనామిక్ మ్యాట్ బ్లాక్ స్మార్ట్ ఛార్జింగ్ కేస్',
+          description: 'సొగసైన మ్యాట్ ఫినిష్ మరియు అయస్కాంత లాకింగ్‌తో రూపొందించిన సౌకర్యవంతమైన ఇయర్‌బడ్స్ కేస్.'
+        }
+      }
+    };
+  }
+
   if (text.includes('watch') || text.includes('wristwatch') || text.includes('timepiece') || text.includes('dial') || text.includes('strap') || text.includes('rose gold')) {
     return {
       productName: 'Classic Rose Gold Minimalist Artisan Watch',

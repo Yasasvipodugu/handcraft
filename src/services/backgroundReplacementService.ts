@@ -116,6 +116,7 @@ export const BACKGROUND_STYLES: BackgroundOption[] = [
 
 export interface SegmentationResult {
   foregroundDataUrl: string;
+  cutoutDataUrl: string;
   compositedDataUrl: string;
   detectedCraft: string;
   studioName: string;
@@ -349,13 +350,21 @@ export async function processBackgroundReplacement(
       const imgData = tempCtx.getImageData(0, 0, srcW, srcH);
       const data = imgData.data;
 
-      // Sample perimeter border pixels (top 8%, bottom 8%, left 8%, right 8%)
-      // This accurately builds a multi-cluster background profile of room wall, floor, and white plates
+      // 1. Comprehensive multi-border & corner profiling (12% depth)
       const bgClusters: { r: number; g: number; b: number; count: number }[] = [];
+      let totalBorderR = 0;
+      let totalBorderG = 0;
+      let totalBorderB = 0;
+      let borderCount = 0;
+
       const addSample = (r: number, g: number, b: number) => {
+        totalBorderR += r;
+        totalBorderG += g;
+        totalBorderB += b;
+        borderCount++;
         for (const c of bgClusters) {
           const d = Math.abs(c.r - r) + Math.abs(c.g - g) + Math.abs(c.b - b);
-          if (d < 32) {
+          if (d < 30) {
             c.r = (c.r * c.count + r) / (c.count + 1);
             c.g = (c.g * c.count + g) / (c.count + 1);
             c.b = (c.b * c.count + b) / (c.count + 1);
@@ -363,13 +372,14 @@ export async function processBackgroundReplacement(
             return;
           }
         }
-        if (bgClusters.length < 24) {
+        if (bgClusters.length < 32) {
           bgClusters.push({ r, g, b, count: 1 });
         }
       };
 
-      const borderDepthY = Math.max(10, Math.floor(srcH * 0.08));
-      const borderDepthX = Math.max(10, Math.floor(srcW * 0.08));
+      const borderDepthY = Math.max(12, Math.floor(srcH * 0.12));
+      const borderDepthX = Math.max(12, Math.floor(srcW * 0.12));
+
       // Top & Bottom strips
       for (let y = 0; y < borderDepthY; y++) {
         for (let x = 0; x < srcW; x += 4) {
@@ -389,76 +399,145 @@ export async function processBackgroundReplacement(
         }
       }
 
-      // Also identify white plate / wall high-luminosity background elements
-      // White plates, off-white walls, pale ceramic/linoleum typically have high brightness & low saturation
-      const isPlateOrWall = (r: number, g: number, b: number) => {
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        const sat = max === 0 ? 0 : (max - min) / max;
-        return (max > 165 && sat < 0.24) || (max > 140 && sat < 0.12);
-      };
+      const avgBgR = borderCount > 0 ? totalBorderR / borderCount : 200;
+      const avgBgG = borderCount > 0 ? totalBorderG / borderCount : 170;
+      const avgBgB = borderCount > 0 ? totalBorderB / borderCount : 130;
+      const avgBgLum = 0.299 * avgBgR + 0.587 * avgBgG + 0.114 * avgBgB;
 
-      // Segment pixels
-      const centerX = srcW / 2;
-      const centerY = srcH / 2;
-      const maxRadius = Math.hypot(centerX, centerY);
+      // Cardboard/kraft surface detection: warm tan (R > G > B, moderate brightness, warm hue)
+      const isCardboardBg = avgBgR > avgBgG && avgBgG > avgBgB && avgBgR > 125 && avgBgB < 165 && (avgBgR - avgBgB) > 30;
 
-      // Sensitivity parameters
-      const distThreshold = sensitivity === 'deep-clean' ? 72 : sensitivity === 'delicate' ? 44 : 58;
+      // 2. Identify Salient Foreground Core (Central Region Analysis)
+      let minFgX = srcW;
+      let maxFgX = 0;
+      let minFgY = srcH;
+      let maxFgY = 0;
+      let fgPixelCount = 0;
 
-      for (let i = 0; i < data.length; i += 4) {
-        const pxX = (i / 4) % srcW;
-        const pxY = Math.floor((i / 4) / srcW);
+      const centerBoxLeft = Math.floor(srcW * 0.10);
+      const centerBoxRight = Math.floor(srcW * 0.90);
+      const centerBoxTop = Math.floor(srcH * 0.10);
+      const centerBoxBottom = Math.floor(srcH * 0.90);
 
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
+      for (let y = centerBoxTop; y < centerBoxBottom; y++) {
+        for (let x = centerBoxLeft; x < centerBoxRight; x++) {
+          const i = (y * srcW + x) * 4;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-        // Craft color vibrancy check
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        const saturation = max === 0 ? 0 : (max - min) / max;
+          let minBgDist = 999;
+          for (const bg of bgClusters) {
+            const d = Math.hypot(r - bg.r, g - bg.g, b - bg.b);
+            if (d < minBgDist) minBgDist = d;
+          }
 
-        // Check distance to closest background cluster
-        let minBgDist = 999;
-        for (const bg of bgClusters) {
-          const dist = Math.hypot(r - bg.r, g - bg.g, b - bg.b);
-          if (dist < minBgDist) minBgDist = dist;
-        }
+          let isCardboardPixel = false;
+          if (isCardboardBg) {
+            isCardboardPixel = (r > g && g > b && r > 115 && b < 160 && (r - b) > 22);
+          }
 
-        // Distance normalized from center
-        const relDistFromCenter = Math.hypot(pxX - centerX, pxY - centerY) / maxRadius;
+          // Dark product check (e.g. black earbuds case, dark watch dial):
+          const isDarkProductPixel = avgBgLum > 95 && lum < 78;
 
-        // Is this a background element (border cluster match, or flat white plate/wall background)?
-        const matchesBgCluster = minBgDist < distThreshold;
-        const matchesPlateOrWall = isPlateOrWall(r, g, b);
+          // Distinct craft color / high contrast check
+          const isDistinctColor = minBgDist > 52 && !isCardboardPixel;
 
-        // Protected craft region: high saturation (yellow/red lacquer wood, green dyes), rich textures
-        const isRichCraftPixel = saturation > 0.28 || (saturation > 0.16 && relDistFromCenter < 0.38);
-
-        if (!isRichCraftPixel) {
-          if (matchesBgCluster || (matchesPlateOrWall && relDistFromCenter > 0.16)) {
-            // Remove background pixel cleanly
-            data[i + 3] = 0;
-          } else if (matchesBgCluster) {
-            data[i + 3] = 0;
+          if (isDarkProductPixel || isDistinctColor) {
+            if (x < minFgX) minFgX = x;
+            if (x > maxFgX) maxFgX = x;
+            if (y < minFgY) minFgY = y;
+            if (y > maxFgY) maxFgY = y;
+            fgPixelCount++;
           }
         }
       }
 
-      // Quick edge antialiasing: soft edge feathering on transition pixels
+      // Expand bounding box with safety margin
+      const padX = Math.max(16, Math.floor(srcW * 0.05));
+      const padY = Math.max(16, Math.floor(srcH * 0.05));
+      const boundLeft = Math.max(0, minFgX - padX);
+      const boundRight = Math.min(srcW - 1, maxFgX + padX);
+      const boundTop = Math.max(0, minFgY - padY);
+      const boundBottom = Math.min(srcH - 1, maxFgY + padY);
+
+      const distThreshold = sensitivity === 'deep-clean' ? 68 : sensitivity === 'delicate' ? 42 : 55;
+
+      // 3. Precise Alpha Channel Segmentation Pass
+      for (let y = 0; y < srcH; y++) {
+        for (let x = 0; x < srcW; x++) {
+          const i = (y * srcW + x) * 4;
+
+          // Out-of-bounds removal: anything outside the detected product boundary is guaranteed background
+          // Completely eliminates Flipkart logos, Kannada/Telugu text, pen marks, borders & sheet edges!
+          if (fgPixelCount > 150 && (x < boundLeft || x > boundRight || y < boundTop || y > boundBottom)) {
+            data[i + 3] = 0;
+            continue;
+          }
+
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+          let minBgDist = 999;
+          for (const bg of bgClusters) {
+            const d = Math.hypot(r - bg.r, g - bg.g, b - bg.b);
+            if (d < minBgDist) minBgDist = d;
+          }
+
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const sat = max === 0 ? 0 : (max - min) / max;
+
+          // White plate / pale wall detection
+          const isWhitePlateOrWall = (max > 165 && sat < 0.22) || (max > 140 && sat < 0.10);
+
+          // Cardboard surface check
+          const isCardboardPixel = isCardboardBg && (r > g && g > b && r > 115 && b < 160 && (r - b) > 22);
+
+          // Blue ink text check (printed Flipkart packaging text has prominent blue ink)
+          const isBlueInkText = isCardboardBg && (b > r + 30 && b > 130);
+
+          if (minBgDist < distThreshold || isCardboardPixel || isWhitePlateOrWall || isBlueInkText) {
+            const isDarkProductCore = avgBgLum > 95 && lum < 65;
+            if (!isDarkProductCore) {
+              data[i + 3] = 0;
+            }
+          }
+        }
+      }
+
+      // 4. Island & Noise Cleanup Pass: Eliminate isolated text bits & lonely pixels
       for (let y = 1; y < srcH - 1; y++) {
         for (let x = 1; x < srcW - 1; x++) {
           const i = (y * srcW + x) * 4;
           if (data[i + 3] > 0) {
-            // Check 4 cardinal neighbors
+            let neighborFgCount = 0;
+            if (data[((y - 1) * srcW + x) * 4 + 3] > 0) neighborFgCount++;
+            if (data[((y + 1) * srcW + x) * 4 + 3] > 0) neighborFgCount++;
+            if (data[(y * srcW + (x - 1)) * 4 + 3] > 0) neighborFgCount++;
+            if (data[(y * srcW + (x + 1)) * 4 + 3] > 0) neighborFgCount++;
+
+            if (neighborFgCount < 2) {
+              data[i + 3] = 0;
+            }
+          }
+        }
+      }
+
+      // 5. Feathered Edge Antialiasing Pass for smooth studio integration
+      for (let y = 1; y < srcH - 1; y++) {
+        for (let x = 1; x < srcW - 1; x++) {
+          const i = (y * srcW + x) * 4;
+          if (data[i + 3] > 0) {
             const topA = data[((y - 1) * srcW + x) * 4 + 3];
             const botA = data[((y + 1) * srcW + x) * 4 + 3];
             const leftA = data[(y * srcW + (x - 1)) * 4 + 3];
             const rightA = data[(y * srcW + (x + 1)) * 4 + 3];
 
             if (topA === 0 || botA === 0 || leftA === 0 || rightA === 0) {
-              // Semi-transparent feathered edge for smooth blend
               data[i + 3] = Math.min(data[i + 3], 195);
             }
           }
@@ -551,6 +630,7 @@ export async function processBackgroundReplacement(
 
   return {
     foregroundDataUrl: foregroundUrl || imgElement.src,
+    cutoutDataUrl: foregroundUrl || imgElement.src,
     compositedDataUrl: compositedUrl || imgElement.src,
     detectedCraft: smartStudio.studioName,
     studioName: chosenStudioName,

@@ -57,9 +57,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <Heart className={`w-4 h-4 ${isSaved ? 'fill-rose-600' : ''}`} />
         </button>
 
-        {/* Category Pill */}
-        <div className="absolute top-3 left-3 bg-stone-900/75 backdrop-blur-xs text-stone-100 text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">
-          {product.category}
+        {/* Category Pill & Cost Range Badge */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
+          <span className="bg-stone-900/80 backdrop-blur-xs text-stone-100 text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            {product.category}
+          </span>
+          <span className="bg-amber-100/90 text-amber-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-300 backdrop-blur-xs shadow-xs">
+            {product.publishedPrice < 1000
+              ? 'Under ₹1K'
+              : product.publishedPrice <= 2500
+              ? '₹1K – ₹2.5K'
+              : product.publishedPrice <= 5000
+              ? '₹2.5K – ₹5K'
+              : 'Above ₹5K'}
+          </span>
         </div>
       </div>
 

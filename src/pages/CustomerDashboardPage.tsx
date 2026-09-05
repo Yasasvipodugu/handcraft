@@ -26,7 +26,8 @@ import {
   Filter,
   Eye,
   CheckCircle,
-  X
+  X,
+  Tag
 } from 'lucide-react';
 
 export const CustomerDashboardPage: React.FC = () => {
@@ -51,6 +52,7 @@ export const CustomerDashboardPage: React.FC = () => {
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [contactArtisanModal, setContactArtisanModal] = useState<Artisan | null>(null);
   const [inquiryText, setInquiryText] = useState<string>('');
@@ -107,6 +109,22 @@ export const CustomerDashboardPage: React.FC = () => {
     )
   ];
 
+  // Price range counts for quick-filter tabs
+  const priceRangeCounts = {
+    all: products.length,
+    under1000: products.filter((p) => (p.publishedPrice || 0) < 1000).length,
+    range1000to2500: products.filter((p) => (p.publishedPrice || 0) >= 1000 && (p.publishedPrice || 0) <= 2500).length,
+    range2500to5000: products.filter((p) => (p.publishedPrice || 0) > 2500 && (p.publishedPrice || 0) <= 5000).length,
+    above5000: products.filter((p) => (p.publishedPrice || 0) > 5000).length
+  };
+
+  const getCostTierBadge = (price: number) => {
+    if (price < 1000) return { label: 'Under ₹1,000', tag: '< ₹1K', bg: 'bg-emerald-50 text-emerald-800 border-emerald-300' };
+    if (price <= 2500) return { label: '₹1,000 – ₹2,500', tag: '₹1K - ₹2.5K', bg: 'bg-amber-50 text-amber-900 border-amber-300' };
+    if (price <= 5000) return { label: '₹2,500 – ₹5,000', tag: '₹2.5K - ₹5K', bg: 'bg-purple-50 text-purple-800 border-purple-300' };
+    return { label: 'Above ₹5,000', tag: 'Above ₹5K', bg: 'bg-rose-50 text-rose-800 border-rose-300' };
+  };
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       !searchTerm ||
@@ -121,7 +139,19 @@ export const CustomerDashboardPage: React.FC = () => {
       selectedLocation === 'all' ||
       (p.artisanLocation && p.artisanLocation.toLowerCase().includes(selectedLocation.toLowerCase()));
 
-    return matchesSearch && matchesCategory && matchesLocation;
+    const price = p.publishedPrice || 0;
+    let matchesPrice = true;
+    if (selectedPriceRange === 'under-1000') {
+      matchesPrice = price < 1000;
+    } else if (selectedPriceRange === '1000-2500') {
+      matchesPrice = price >= 1000 && price <= 2500;
+    } else if (selectedPriceRange === '2500-5000') {
+      matchesPrice = price > 2500 && price <= 5000;
+    } else if (selectedPriceRange === 'above-5000') {
+      matchesPrice = price > 5000;
+    }
+
+    return matchesSearch && matchesCategory && matchesLocation && matchesPrice;
   });
 
   if (!currentUser) return null;
@@ -283,6 +313,88 @@ export const CustomerDashboardPage: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Shop by Cost Range Interactive Showcase */}
+              <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                  <div>
+                    <h3 className="font-bold text-base text-stone-900">Shop by Cost Range</h3>
+                    <p className="text-xs text-stone-500">Discover authentic crafts suited to your budget and gifting needs</p>
+                  </div>
+                  <span className="text-xs font-bold text-stone-400">4 Price Tiers</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    {
+                      id: 'under-1000',
+                      title: 'Under ₹1,000',
+                      subtitle: 'Budget Friendly Utility Crafts',
+                      desc: 'Terracotta planters, Kondapalli wooden toys, bamboo baskets & folk pottery.',
+                      count: priceRangeCounts.under1000,
+                      badge: 'Everyday Decor',
+                      color: 'border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-950',
+                      tagColor: 'bg-emerald-100 text-emerald-800'
+                    },
+                    {
+                      id: '1000-2500',
+                      title: '₹1,000 – ₹2,500',
+                      subtitle: 'Popular Artisan Range',
+                      desc: 'Classic rose gold watches, Mithila Madhubani art, Dhokra brass & jewelry.',
+                      count: priceRangeCounts.range1000to2500,
+                      badge: 'Most Popular',
+                      color: 'border-amber-200 bg-amber-50/50 hover:bg-amber-50 text-amber-950',
+                      tagColor: 'bg-amber-100 text-amber-900'
+                    },
+                    {
+                      id: '2500-5000',
+                      title: '₹2,500 – ₹5,000',
+                      subtitle: 'Artisan Heritage Crafts',
+                      desc: 'Pure Kashmiri Pashmina cashmere shawls, fine woodwork & museum-grade art.',
+                      count: priceRangeCounts.range2500to5000,
+                      badge: 'GI Heritage',
+                      color: 'border-purple-200 bg-purple-50/50 hover:bg-purple-50 text-purple-950',
+                      tagColor: 'bg-purple-100 text-purple-800'
+                    },
+                    {
+                      id: 'above-5000',
+                      title: 'Above ₹5,000',
+                      subtitle: 'Masterpiece & Luxury',
+                      desc: 'Royal Banarasi pure Katan silk sarees and generational mastercrafts.',
+                      count: priceRangeCounts.above5000,
+                      badge: 'Heirloom Luxury',
+                      color: 'border-rose-200 bg-rose-50/50 hover:bg-rose-50 text-rose-950',
+                      tagColor: 'bg-rose-100 text-rose-800'
+                    }
+                  ].map((tier) => (
+                    <button
+                      key={tier.id}
+                      onClick={() => {
+                        setSelectedPriceRange(tier.id);
+                        setActiveTab('browse');
+                      }}
+                      className={`p-4 rounded-2xl border text-left transition-all hover:shadow-md cursor-pointer flex flex-col justify-between ${tier.color}`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${tier.tagColor}`}>
+                            {tier.badge}
+                          </span>
+                          <span className="text-xs font-black opacity-75">{tier.count} Items</span>
+                        </div>
+                        <h4 className="text-base font-black tracking-tight pt-1">{tier.title}</h4>
+                        <p className="text-[11px] font-bold opacity-85">{tier.subtitle}</p>
+                        <p className="text-[11px] opacity-70 line-clamp-2 pt-1">{tier.desc}</p>
+                      </div>
+
+                      <div className="pt-3 flex items-center gap-1 text-xs font-bold text-amber-800">
+                        <span>Browse Items</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -297,9 +409,9 @@ export const CustomerDashboardPage: React.FC = () => {
               </div>
 
               {/* Search & Filter Controls */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Search */}
-                <div className="relative sm:col-span-1">
+                <div className="relative">
                   <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
                   <input
                     type="text"
@@ -345,11 +457,65 @@ export const CustomerDashboardPage: React.FC = () => {
                       ))}
                   </select>
                 </div>
+
+                {/* Cost Range Filter Dropdown */}
+                <div>
+                  <select
+                    value={selectedPriceRange}
+                    onChange={(e) => setSelectedPriceRange(e.target.value)}
+                    className="w-full py-2 px-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-700/20 font-medium text-amber-950 font-bold"
+                  >
+                    <option value="all">All Cost Ranges ({priceRangeCounts.all})</option>
+                    <option value="under-1000">Under ₹1,000 ({priceRangeCounts.under1000})</option>
+                    <option value="1000-2500">₹1,000 – ₹2,500 ({priceRangeCounts.range1000to2500})</option>
+                    <option value="2500-5000">₹2,500 – ₹5,000 ({priceRangeCounts.range2500to5000})</option>
+                    <option value="above-5000">Above ₹5,000 ({priceRangeCounts.above5000})</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Interactive Cost Range Quick-Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none text-xs">
+                <span className="font-bold text-stone-500 text-[11px] whitespace-nowrap">Cost Range:</span>
+                {[
+                  { id: 'all', label: 'All Crafts', count: priceRangeCounts.all },
+                  { id: 'under-1000', label: 'Under ₹1,000', count: priceRangeCounts.under1000 },
+                  { id: '1000-2500', label: '₹1,000 – ₹2,500', count: priceRangeCounts.range1000to2500 },
+                  { id: '2500-5000', label: '₹2,500 – ₹5,000', count: priceRangeCounts.range2500to5000 },
+                  { id: 'above-5000', label: 'Above ₹5,000', count: priceRangeCounts.above5000 }
+                ].map((pill) => (
+                  <button
+                    key={pill.id}
+                    onClick={() => setSelectedPriceRange(pill.id)}
+                    className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap text-xs transition-all flex items-center gap-1.5 cursor-pointer border ${
+                      selectedPriceRange === pill.id
+                        ? 'bg-amber-800 text-white border-amber-900 shadow-xs'
+                        : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
+                    }`}
+                  >
+                    <span>{pill.label}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                        selectedPriceRange === pill.id ? 'bg-amber-950 text-amber-100' : 'bg-stone-200 text-stone-700'
+                      }`}
+                    >
+                      {pill.count}
+                    </span>
+                  </button>
+                ))}
               </div>
 
               {/* Results Count */}
-              <div className="text-xs text-stone-500 font-semibold">
-                Found {filteredProducts.length} handcrafted items:
+              <div className="flex items-center justify-between text-xs text-stone-500 font-semibold border-t border-stone-100 pt-3">
+                <span>Found {filteredProducts.length} handcrafted items:</span>
+                {selectedPriceRange !== 'all' && (
+                  <button
+                    onClick={() => setSelectedPriceRange('all')}
+                    className="text-amber-800 hover:text-amber-900 underline text-xs font-bold"
+                  >
+                    Clear Cost Filter
+                  </button>
+                )}
               </div>
 
               {/* Product Grid */}
@@ -371,9 +537,14 @@ export const CustomerDashboardPage: React.FC = () => {
                             alt={prod.name}
                             className="w-full h-44 object-cover"
                           />
-                          <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-black/60 text-white backdrop-blur-xs">
-                            {prod.category}
-                          </span>
+                          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-black/60 text-white backdrop-blur-xs">
+                              {prod.category}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border backdrop-blur-xs shadow-xs ${getCostTierBadge(prod.publishedPrice || 0).bg}`}>
+                              {getCostTierBadge(prod.publishedPrice || 0).tag}
+                            </span>
+                          </div>
                         </div>
                         <div className="p-4 space-y-1.5">
                           <h4 className="font-black text-sm text-stone-900 line-clamp-1">{prod.name}</h4>
@@ -384,9 +555,14 @@ export const CustomerDashboardPage: React.FC = () => {
                             <span className="text-stone-400">• {prod.artisanLocation}</span>
                           </div>
                           <div className="pt-2 flex items-center justify-between text-xs">
-                            <span className="font-black text-base text-amber-800">
-                              ₹{prod.publishedPrice?.toLocaleString('en-IN')}
-                            </span>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="font-black text-base text-amber-800">
+                                ₹{prod.publishedPrice?.toLocaleString('en-IN')}
+                              </span>
+                              <span className="text-[10px] font-semibold text-stone-400">
+                                ({getCostTierBadge(prod.publishedPrice || 0).label})
+                              </span>
+                            </div>
                             <span className="text-[10px] text-stone-400">Stock: {prod.stock || 1}</span>
                           </div>
                         </div>
