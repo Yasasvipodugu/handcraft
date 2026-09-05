@@ -48,75 +48,85 @@ class KalaDatabase {
   }
 
   private init() {
-    if (!localStorage.getItem('kala_initialized_v2')) {
-      this.resetToDemoData();
-      return;
-    }
-    // Auto-heal seed users and strip any stock photos from all user accounts
-    const users = this.getUsers();
-    let updated = false;
-    for (const seed of INITIAL_USERS) {
-      if (!users.some((u) => u.email.toLowerCase() === seed.email.toLowerCase())) {
-        users.push(seed);
-        updated = true;
-      }
-    }
-    // Purge unwanted default stock avatars from all accounts
-    for (const u of users) {
-      if (u.avatar && (u.avatar.includes('unsplash.com') || u.avatar.includes('photo-1544005313') || u.avatar.includes('photo-1494790108377'))) {
-        u.avatar = '';
-        updated = true;
-      }
-    }
-    if (updated) {
-      this.setTable('users', users);
-    }
-
-    // Purge unwanted stock avatars from created artisans
-    const artisans = this.getArtisans();
-    let aUpdated = false;
-    for (const a of artisans) {
-      const isDemoArtisan = a.id === 'artisan-1' || a.id?.startsWith('artisan-demo-');
-      if (!isDemoArtisan && a.avatarUrl) {
-        a.avatarUrl = '';
-        aUpdated = true;
-      }
-    }
-    if (aUpdated) {
-      this.setTable('artisans', artisans);
-    }
-
-    // Sanitize saved current user in localStorage
     try {
-      const savedUser = localStorage.getItem('kala_current_user');
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser);
-        if (parsed.avatar && (parsed.avatar.includes('unsplash.com') || parsed.avatar.includes('photo-1544005313') || parsed.avatar.includes('photo-1494790108377'))) {
-          parsed.avatar = '';
-          localStorage.setItem('kala_current_user', JSON.stringify(parsed));
+      if (!localStorage.getItem('kala_initialized_v2')) {
+        this.resetToDemoData();
+        return;
+      }
+      // Auto-heal seed users and strip any stock photos from all user accounts
+      const users = this.getUsers();
+      let updated = false;
+      for (const seed of INITIAL_USERS) {
+        if (!users.some((u) => u.email && u.email.toLowerCase() === seed.email.toLowerCase())) {
+          users.push(seed);
+          updated = true;
         }
       }
-    } catch (e) {
-      // ignore
+      // Purge unwanted default stock avatars from all accounts
+      for (const u of users) {
+        if (u.avatar && (u.avatar.includes('unsplash.com') || u.avatar.includes('photo-1544005313') || u.avatar.includes('photo-1494790108377'))) {
+          u.avatar = '';
+          updated = true;
+        }
+      }
+      if (updated) {
+        this.setTable('users', users);
+      }
+
+      // Purge unwanted stock avatars from created artisans
+      const artisans = this.getArtisans();
+      let aUpdated = false;
+      for (const a of artisans) {
+        const isDemoArtisan = a.id === 'artisan-1' || a.id?.startsWith('artisan-demo-');
+        if (!isDemoArtisan && a.avatarUrl) {
+          a.avatarUrl = '';
+          aUpdated = true;
+        }
+      }
+      if (aUpdated) {
+        this.setTable('artisans', artisans);
+      }
+
+      // Sanitize saved current user in localStorage
+      try {
+        const savedUser = localStorage.getItem('kala_current_user');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          if (parsed && typeof parsed === 'object' && parsed.avatar && (parsed.avatar.includes('unsplash.com') || parsed.avatar.includes('photo-1544005313') || parsed.avatar.includes('photo-1494790108377'))) {
+            parsed.avatar = '';
+            localStorage.setItem('kala_current_user', JSON.stringify(parsed));
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    } catch (err) {
+      console.error('KalaDatabase init error caught:', err);
     }
   }
 
   public resetToDemoData() {
-    localStorage.setItem('kala_users', JSON.stringify(INITIAL_USERS));
-    localStorage.setItem('kala_artisans', JSON.stringify(INITIAL_ARTISANS));
-    localStorage.setItem('kala_products', JSON.stringify(INITIAL_PRODUCTS));
-    localStorage.setItem('kala_orders', JSON.stringify(INITIAL_ORDERS));
-    localStorage.setItem('kala_b2b_requirements', JSON.stringify(INITIAL_B2B_REQUIREMENTS));
-    localStorage.setItem('kala_b2b_proposals', JSON.stringify(INITIAL_B2B_PROPOSALS));
-    localStorage.setItem('kala_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
-    localStorage.setItem('kala_initialized_v2', 'true');
-    this.notify('all', null);
+    try {
+      localStorage.setItem('kala_users', JSON.stringify(INITIAL_USERS));
+      localStorage.setItem('kala_artisans', JSON.stringify(INITIAL_ARTISANS));
+      localStorage.setItem('kala_products', JSON.stringify(INITIAL_PRODUCTS));
+      localStorage.setItem('kala_orders', JSON.stringify(INITIAL_ORDERS));
+      localStorage.setItem('kala_b2b_requirements', JSON.stringify(INITIAL_B2B_REQUIREMENTS));
+      localStorage.setItem('kala_b2b_proposals', JSON.stringify(INITIAL_B2B_PROPOSALS));
+      localStorage.setItem('kala_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
+      localStorage.setItem('kala_initialized_v2', 'true');
+      this.notify('all', null);
+    } catch (e) {
+      console.error('Error resetting to demo data:', e);
+    }
   }
 
   private getTable<T>(table: string, fallback: T[]): T[] {
     try {
       const data = localStorage.getItem(`kala_${table}`);
-      return data ? JSON.parse(data) : fallback;
+      if (!data) return fallback;
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed : fallback;
     } catch (e) {
       console.error(`Error reading ${table} from localStorage`, e);
       return fallback;
@@ -161,7 +171,9 @@ class KalaDatabase {
   }
 
   public getUserByEmail(email: string): User | undefined {
-    return this.getUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (!email) return undefined;
+    const clean = email.trim().toLowerCase();
+    return this.getUsers().find((u) => u.email && u.email.trim().toLowerCase() === clean);
   }
 
   public createUser(userData: Omit<User, 'id' | 'createdAt'>): User {
@@ -327,7 +339,7 @@ class KalaDatabase {
     if (!backendUser || !backendUser.id) return;
     const users = this.getUsers();
     const idx = users.findIndex(
-      (u) => u.id === backendUser.id || u.email.toLowerCase() === backendUser.email?.toLowerCase()
+      (u) => u.id === backendUser.id || (Boolean(u.email && backendUser.email) && u.email.toLowerCase() === backendUser.email.toLowerCase())
     );
     if (idx >= 0) {
       users[idx] = { ...users[idx], ...backendUser };
@@ -623,8 +635,8 @@ class KalaDatabase {
 
     // Dispatch notifications to matched artisans
     const artisans = this.getArtisans().filter(
-      (a) => a.craftCategory.toLowerCase().includes(newReq.category.toLowerCase()) ||
-             newReq.category.toLowerCase().includes(a.craftCategory.toLowerCase())
+      (a) => (a.craftCategory || '').toLowerCase().includes((newReq.category || '').toLowerCase()) ||
+             (newReq.category || '').toLowerCase().includes((a.craftCategory || '').toLowerCase())
     );
     artisans.forEach((artisan) => {
       this.addNotification({
