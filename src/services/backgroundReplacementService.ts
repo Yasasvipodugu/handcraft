@@ -407,10 +407,9 @@ export async function processBackgroundReplacement(
       // Cardboard/kraft surface detection: warm tan (R > G > B, moderate brightness, warm hue)
       const isCardboardBg = avgBgR > avgBgG && avgBgG > avgBgB && avgBgR > 115 && avgBgB < 175 && (avgBgR - avgBgB) > 22;
 
-      // 2. Classify background & identify core foreground candidates
+      // 2. Classify background & candidate foreground
       const n = srcW * srcH;
       const isBg = new Uint8Array(n);
-      const isCore = new Uint8Array(n);
 
       for (let y = 0; y < srcH; y++) {
         for (let x = 0; x < srcW; x++) {
@@ -420,12 +419,32 @@ export async function processBackgroundReplacement(
           const g = data[i + 1];
           const b = data[i + 2];
           const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const isSpecular = r > 165 && g > 165 && b > 165 && Math.max(r, g, b) - Math.min(r, g, b) < 35;
 
-          // Pure white specular highlight detection (e.g. glossy reflections on watches, pottery, earbuds)
-          const isSpecularHighlight = r > 175 && g > 175 && b > 175 && Math.max(r, g, b) - Math.min(r, g, b) < 30;
+          // Margin borders are definitely background
+          if (
+            y < borderDepthY * 0.5 ||
+            y > srcH - borderDepthY * 0.5 ||
+            x < borderDepthX * 0.4 ||
+            x > srcW - borderDepthX * 0.4
+          ) {
+            isBg[idx] = 1;
+            continue;
+          }
 
-          // Perimeter border forced background
-          if (y < borderDepthY * 0.7 || y > srcH - borderDepthY * 0.7 || x < borderDepthX * 0.6 || x > srcW - borderDepthX * 0.6) {
+          // Cardboard surface & blue/grey printed ink detection on cardboard
+          if (isCardboardBg) {
+            const isCardboard = r > 105 && r >= g - 10 && g >= b - 12 && r - b > 12;
+            const isBlueInk = lum > 65 && b > 85 && b > r + 10 && g > 60 && !isSpecular;
+            if (isCardboard || isBlueInk) {
+              isBg[idx] = 1;
+              continue;
+            }
+          }
+
+          // White paper or floor backdrop
+          const isWhiteBackdrop = lum > 230 && Math.max(r, g, b) - Math.min(r, g, b) < 25 && (y < srcH * 0.2 || y > srcH * 0.85);
+          if (isWhiteBackdrop) {
             isBg[idx] = 1;
             continue;
           }
@@ -436,57 +455,51 @@ export async function processBackgroundReplacement(
             if (d < minBgDist) minBgDist = d;
           }
 
-          // Cardboard surface check (warm tan tone)
-          const isCardboardPixel = (r > 100) && (r >= g - 6) && (g >= b - 10) && (r - b > 14);
-
-          // Printed shipping text on cardboard (blue/grey stamps, barcode lines, regional scripts)
-          const isPrintedShippingText = (b > 85) && (b > r - 20) && (g > 75) && (r < 190) && !isSpecularHighlight;
-
-          // Plain white background paper or floor (when not part of a product)
-          const isWhiteBackdrop = lum > 230 && Math.max(r, g, b) - Math.min(r, g, b) < 25 && (y < srcH * 0.2 || y > srcH * 0.85);
-
-          if ((isCardboardBg && isCardboardPixel) || isPrintedShippingText || isWhiteBackdrop || minBgDist < 36) {
+          if (minBgDist < 35 && !isSpecular) {
             isBg[idx] = 1;
-          } else {
-            // Core product candidate (inside central region)
-            const inCenter = x >= srcW * 0.08 && x <= srcW * 0.92 && y >= srcH * 0.12 && y <= srcH * 0.88;
-            if (inCenter && (lum < 78 || minBgDist > 52)) {
-              isCore[idx] = 1;
-            }
           }
         }
       }
 
-      // 3. Find connected component of isCore closest to center (srcW / 2, srcH / 2)
-      const cx = Math.floor(srcW / 2);
-      const cy = Math.floor(srcH / 2);
+      // 3. Find connected components of candidate foreground (!isBg)
       const visited = new Uint8Array(n);
-      const coreMask = new Uint8Array(n);
-
-      let bestScore = -1;
+      interface Component {
+        pixels: number[];
+        minY: number;
+        maxY: number;
+        minX: number;
+        maxX: number;
+        centerY: number;
+        centerX: number;
+      }
+      const components: Component[] = [];
       const queue: number[] = [];
 
-      // Scan for components
-      for (let y = Math.floor(srcH * 0.15); y < Math.floor(srcH * 0.85); y += 2) {
-        for (let x = Math.floor(srcW * 0.10); x < Math.floor(srcW * 0.90); x += 2) {
+      for (let y = Math.floor(srcH * 0.08); y < Math.floor(srcH * 0.92); y += 2) {
+        for (let x = Math.floor(srcW * 0.06); x < Math.floor(srcW * 0.94); x += 2) {
           const startIdx = y * srcW + x;
-          if (isCore[startIdx] && !visited[startIdx]) {
-            let compSize = 0;
-            let sumX = 0;
-            let sumY = 0;
+          if (!isBg[startIdx] && !visited[startIdx]) {
             const compPixels: number[] = [];
-
             queue.push(startIdx);
             visited[startIdx] = 1;
+            let minY = y;
+            let maxY = y;
+            let minX = x;
+            let maxX = x;
+            let sumY = 0;
+            let sumX = 0;
 
             while (queue.length > 0) {
               const curr = queue.shift()!;
               compPixels.push(curr);
-              compSize++;
               const curX = curr % srcW;
               const curY = Math.floor(curr / srcW);
               sumX += curX;
               sumY += curY;
+              if (curY < minY) minY = curY;
+              if (curY > maxY) maxY = curY;
+              if (curX < minX) minX = curX;
+              if (curX > maxX) maxX = curX;
 
               const neighbors = [
                 curX > 0 ? curr - 1 : -1,
@@ -495,58 +508,80 @@ export async function processBackgroundReplacement(
                 curY < srcH - 1 ? curr + srcW : -1
               ];
               for (const nbr of neighbors) {
-                if (nbr >= 0 && !visited[nbr] && isCore[nbr]) {
+                if (nbr >= 0 && !visited[nbr] && !isBg[nbr]) {
                   visited[nbr] = 1;
                   queue.push(nbr);
                 }
               }
             }
 
-            if (compSize > 200) {
-              const meanX = sumX / compSize;
-              const meanY = sumY / compSize;
-              const distToCenter = Math.hypot(meanX - cx, meanY - cy);
-              const score = compSize / (distToCenter + 10);
-              if (score > bestScore) {
-                bestScore = score;
-                coreMask.fill(0);
-                for (const p of compPixels) {
-                  coreMask[p] = 1;
-                }
-              }
+            if (compPixels.length > 300) {
+              components.push({
+                pixels: compPixels,
+                minY,
+                maxY,
+                minX,
+                maxX,
+                centerY: sumY / compPixels.length,
+                centerX: sumX / compPixels.length
+              });
             }
           }
         }
       }
 
-      // 4. Morphological Hole-Filling & Specular Highlight Preservation:
-      // Flood fill from the 4 outer image borders. Any non-core pixel reachable from the edge is outer background.
-      // Pixels that CANNOT be reached from the borders are internal holes (specular highlights, logos, reflections).
-      const outerBg = new Uint8Array(n);
+      // Sort by size descending
+      components.sort((a, b) => b.pixels.length - a.pixels.length);
+
+      const productMask = new Uint8Array(n);
+      if (components.length > 0) {
+        const primary = components[0];
+        for (const p of primary.pixels) {
+          productMask[p] = 1;
+        }
+
+        // Include any connected/adjacent craft fragments inside the bounding region
+        for (let c = 1; c < components.length; c++) {
+          const comp = components[c];
+          if (
+            comp.centerY >= primary.minY - 30 &&
+            comp.centerY <= primary.maxY + 30 &&
+            comp.centerX >= primary.minX - 30 &&
+            comp.centerX <= primary.maxX + 30
+          ) {
+            for (const p of comp.pixels) {
+              productMask[p] = 1;
+            }
+          }
+        }
+      }
+
+      // 4. Morphological Exterior Flood Fill (Hole-Filling):
+      // Preserves 100% specular reflections, brand logos, and interior details
+      const exterior = new Uint8Array(n);
       const floodQueue: number[] = [];
 
-      // Enqueue border pixels that are not part of coreMask
       for (let x = 0; x < srcW; x++) {
         const topIdx = x;
         const bottomIdx = (srcH - 1) * srcW + x;
-        if (!coreMask[topIdx] && !outerBg[topIdx]) {
-          outerBg[topIdx] = 1;
+        if (!productMask[topIdx] && !exterior[topIdx]) {
+          exterior[topIdx] = 1;
           floodQueue.push(topIdx);
         }
-        if (!coreMask[bottomIdx] && !outerBg[bottomIdx]) {
-          outerBg[bottomIdx] = 1;
+        if (!productMask[bottomIdx] && !exterior[bottomIdx]) {
+          exterior[bottomIdx] = 1;
           floodQueue.push(bottomIdx);
         }
       }
       for (let y = 0; y < srcH; y++) {
         const leftIdx = y * srcW;
         const rightIdx = y * srcW + (srcW - 1);
-        if (!coreMask[leftIdx] && !outerBg[leftIdx]) {
-          outerBg[leftIdx] = 1;
+        if (!productMask[leftIdx] && !exterior[leftIdx]) {
+          exterior[leftIdx] = 1;
           floodQueue.push(leftIdx);
         }
-        if (!coreMask[rightIdx] && !outerBg[rightIdx]) {
-          outerBg[rightIdx] = 1;
+        if (!productMask[rightIdx] && !exterior[rightIdx]) {
+          exterior[rightIdx] = 1;
           floodQueue.push(rightIdx);
         }
       }
@@ -564,26 +599,45 @@ export async function processBackgroundReplacement(
         ];
 
         for (const nbr of neighbors) {
-          if (nbr >= 0 && !outerBg[nbr] && !coreMask[nbr]) {
-            outerBg[nbr] = 1;
+          if (nbr >= 0 && !exterior[nbr] && !productMask[nbr]) {
+            exterior[nbr] = 1;
             floodQueue.push(nbr);
           }
         }
       }
 
-      // 5. Build clean mask: enclosed pixels are product; filter out any residual background
+      // 5. Final Product Mask & Edge Cleaning
       const mask = new Uint8Array(n);
       for (let i = 0; i < n; i++) {
-        if (!outerBg[i]) {
-          const r = data[i * 4];
-          const g = data[i * 4 + 1];
-          const b = data[i * 4 + 2];
-          const isSpecular = r > 175 && g > 175 && b > 175 && Math.max(r, g, b) - Math.min(r, g, b) < 30;
-          const isCardboardPixel = (r > 100) && (r >= g - 6) && (g >= b - 10) && (r - b > 14);
-          const isPrintedText = (b > 85) && (b > r - 20) && (g > 75) && (r < 190) && !isSpecular;
+        if (!exterior[i]) {
+          mask[i] = 1;
+        }
+      }
 
-          if (isSpecular || (!isCardboardPixel && !isPrintedText)) {
-            mask[i] = 1;
+      // Edge cleanup: remove residual packaging fringe from boundary pixels
+      for (let y = 1; y < srcH - 1; y++) {
+        for (let x = 1; x < srcW - 1; x++) {
+          const idx = y * srcW + x;
+          if (mask[idx]) {
+            const hasExteriorNeighbor =
+              exterior[idx - 1] ||
+              exterior[idx + 1] ||
+              exterior[idx - srcW] ||
+              exterior[idx + srcW];
+
+            if (hasExteriorNeighbor) {
+              const i = idx * 4;
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+              if (
+                (r > 100 && r >= g - 8 && g >= b - 10) ||
+                (lum > 65 && b > 80 && b > r + 10)
+              ) {
+                mask[idx] = 0;
+              }
+            }
           }
         }
       }

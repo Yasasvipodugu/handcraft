@@ -6,6 +6,18 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   base: './',
   plugins: [
+    {
+      name: 'dev-entry',
+      apply: 'serve',
+      transformIndexHtml(html) {
+        return html
+          .replace(
+            /<script type="module" crossorigin src="\.\/assets\/[^"]+"><\/script>/,
+            '<script type="module" src="/src/main.tsx"></script>'
+          )
+          .replace(/<link rel="stylesheet" crossorigin href="\.\/assets\/[^"]+">/, '');
+      },
+    },
     react(),
     tailwindcss(),
   ],
