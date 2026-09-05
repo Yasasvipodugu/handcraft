@@ -22,11 +22,13 @@
 
 export type BackgroundStyle =
   | 'smart-match'
-  | 'clean-white'
-  | 'soft-beige'
+  | 'bamboo-studio'
   | 'natural-craft'
-  | 'premium-studio'
   | 'traditional-env'
+  | 'premium-studio'
+  | 'jewelry-studio'
+  | 'soft-beige'
+  | 'clean-white'
   | 'minimal-lifestyle'
   | 'transparent';
 
@@ -43,13 +45,20 @@ export const BACKGROUND_STYLES: BackgroundOption[] = [
   {
     id: 'smart-match',
     name: 'Smart Match (AI Studio)',
-    description: 'AI automatically synthesizes a dedicated high-end studio environment tailored to your specific craft.',
+    description: 'AI automatically synthesizes a dedicated studio environment tailored to your specific craft.',
     accentColor: '#D97706',
     previewGradient: 'from-amber-100 via-stone-100 to-amber-200'
   },
   {
+    id: 'bamboo-studio',
+    name: 'Natural Bamboo & Cane Studio',
+    description: 'Organic warm beige linen wall with subtle bamboo silhouettes and natural bamboo slat surface.',
+    accentColor: '#15803D',
+    previewGradient: 'from-emerald-100 via-amber-50 to-emerald-200'
+  },
+  {
     id: 'natural-craft',
-    name: 'Handcrafted Wooden Toy & Craft Studio',
+    name: 'Handcrafted Wooden Workshop Studio',
     description: 'Warm artisan workshop with polished cedar wood workbench, golden studio bokeh, and natural lighting.',
     accentColor: '#B45309',
     previewGradient: 'from-amber-200 via-amber-100 to-stone-200'
@@ -62,8 +71,22 @@ export const BACKGROUND_STYLES: BackgroundOption[] = [
     previewGradient: 'from-orange-200 via-stone-200 to-amber-100'
   },
   {
+    id: 'premium-studio',
+    name: 'Premium Textile & Handloom Studio',
+    description: 'Draped raw linen textures, soft architectural morning light, and elegant gallery depth.',
+    accentColor: '#78716C',
+    previewGradient: 'from-stone-200 via-stone-100 to-amber-50'
+  },
+  {
+    id: 'jewelry-studio',
+    name: 'Luxury Jewelry & Metalcraft Studio',
+    description: 'Dark charcoal slate podium with directional specular rim lighting for metallic luster.',
+    accentColor: '#475569',
+    previewGradient: 'from-slate-700 via-slate-800 to-stone-900'
+  },
+  {
     id: 'soft-beige',
-    name: 'Soft Beige Studio',
+    name: 'Soft Beige Cyclorama Studio',
     description: 'Warm, organic earth-toned cyclorama studio backdrop with continuous infinity curve.',
     accentColor: '#F7F4EE',
     previewGradient: 'from-stone-100 via-amber-50 to-stone-200'
@@ -74,13 +97,6 @@ export const BACKGROUND_STYLES: BackgroundOption[] = [
     description: 'Pure distraction-free e-commerce white background with natural soft ground drop shadow.',
     accentColor: '#FFFFFF',
     previewGradient: 'from-white via-stone-50 to-stone-100'
-  },
-  {
-    id: 'premium-studio',
-    name: 'Premium Textile & Handloom Studio',
-    description: 'Draped raw linen textures, soft architectural morning light, and elegant gallery depth.',
-    accentColor: '#78716C',
-    previewGradient: 'from-stone-200 via-stone-100 to-amber-50'
   },
   {
     id: 'minimal-lifestyle',
@@ -540,11 +556,20 @@ function renderUltraRealisticStudio(
 ) {
   const tableTopY = height * 0.74;
 
+  // Resolve effective style for smart-match
+  let effectiveStyle = style;
+  if (style === 'smart-match') {
+    if (smartStudio.surfaceType === 'clay') effectiveStyle = 'traditional-env';
+    else if (smartStudio.surfaceType === 'linen') effectiveStyle = 'premium-studio';
+    else if (smartStudio.surfaceType === 'marble') effectiveStyle = 'jewelry-studio';
+    else if (smartStudio.studioName.toLowerCase().includes('bamboo')) effectiveStyle = 'bamboo-studio';
+    else effectiveStyle = 'natural-craft';
+  }
+
   // -------------------------------------------------------------
   // STYLE: CLEAN WHITE STUDIO
   // -------------------------------------------------------------
-  if (style === 'clean-white') {
-    // Pure e-commerce standard with gentle softbox horizon gradient
+  if (effectiveStyle === 'clean-white') {
     const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
     bgGrad.addColorStop(0, '#FFFFFF');
     bgGrad.addColorStop(0.74, '#FDFDFD');
@@ -552,8 +577,7 @@ function renderUltraRealisticStudio(
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, width, height);
 
-    // Subtle soft horizon line
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.04)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, tableTopY);
@@ -565,21 +589,19 @@ function renderUltraRealisticStudio(
   // -------------------------------------------------------------
   // STYLE: SOFT BEIGE STUDIO (Infinite Cyclorama Curve)
   // -------------------------------------------------------------
-  if (style === 'soft-beige') {
+  if (effectiveStyle === 'soft-beige') {
     const wallGrad = ctx.createLinearGradient(0, 0, 0, tableTopY);
     wallGrad.addColorStop(0, '#F9F6F0');
     wallGrad.addColorStop(1, '#EDE7DA');
     ctx.fillStyle = wallGrad;
     ctx.fillRect(0, 0, width, tableTopY);
 
-    // Continuous curved studio floor
     const floorGrad = ctx.createLinearGradient(0, tableTopY, 0, height);
     floorGrad.addColorStop(0, '#E6DEC9');
     floorGrad.addColorStop(1, '#D8CFB8');
     ctx.fillStyle = floorGrad;
     ctx.fillRect(0, tableTopY, width, height - tableTopY);
 
-    // Studio softbox ambient glow
     drawStudioVignette(ctx, width, height);
     return;
   }
@@ -587,15 +609,13 @@ function renderUltraRealisticStudio(
   // -------------------------------------------------------------
   // STYLE: MINIMAL LIFESTYLE STUDIO
   // -------------------------------------------------------------
-  if (style === 'minimal-lifestyle') {
-    // Architectural sunlit stone backdrop
+  if (effectiveStyle === 'minimal-lifestyle') {
     const wallGrad = ctx.createLinearGradient(0, 0, width, tableTopY);
     wallGrad.addColorStop(0, '#F5F4F0');
     wallGrad.addColorStop(1, '#E8E5DD');
     ctx.fillStyle = wallGrad;
     ctx.fillRect(0, 0, width, tableTopY);
 
-    // Smooth hone-finished stone surface
     const floorGrad = ctx.createLinearGradient(0, tableTopY, 0, height);
     floorGrad.addColorStop(0, '#E2DED4');
     floorGrad.addColorStop(1, '#D0CBC0');
@@ -617,10 +637,68 @@ function renderUltraRealisticStudio(
   }
 
   // -------------------------------------------------------------
+  // STYLE: NATURAL BAMBOO & CANE STUDIO
+  // -------------------------------------------------------------
+  if (effectiveStyle === 'bamboo-studio') {
+    // 1. Organic Warm Beige Wall with Soft Green Tint
+    const wallGrad = ctx.createLinearGradient(0, 0, 0, tableTopY);
+    wallGrad.addColorStop(0, '#FAF8F0');
+    wallGrad.addColorStop(0.5, '#F1EDE0');
+    wallGrad.addColorStop(1, '#E4DEC9');
+    ctx.fillStyle = wallGrad;
+    ctx.fillRect(0, 0, width, tableTopY);
+
+    // 2. Subtle Out-of-Focus Bamboo Stalk Silhouettes in Background
+    ctx.save();
+    ctx.fillStyle = 'rgba(120, 150, 110, 0.08)';
+    const stalks = [width * 0.1, width * 0.16, width * 0.84, width * 0.9];
+    for (const sx of stalks) {
+      ctx.fillRect(sx, 0, width * 0.035, tableTopY);
+      // Bamboo nodes
+      ctx.fillStyle = 'rgba(100, 130, 90, 0.14)';
+      for (let ny = 40; ny < tableTopY; ny += 90) {
+        ctx.fillRect(sx - 3, ny, width * 0.035 + 6, 4);
+      }
+      ctx.fillStyle = 'rgba(120, 150, 110, 0.08)';
+    }
+    ctx.restore();
+
+    // 3. Natural Polished Bamboo Slat Surface
+    const floorGrad = ctx.createLinearGradient(0, tableTopY, 0, height);
+    floorGrad.addColorStop(0, '#DFCBA4');
+    floorGrad.addColorStop(0.05, '#D2BC92');
+    floorGrad.addColorStop(0.4, '#C1A77A');
+    floorGrad.addColorStop(1, '#9E8256');
+    ctx.fillStyle = floorGrad;
+    ctx.fillRect(0, tableTopY, width, height - tableTopY);
+
+    // Horizontal bamboo slat reed grooves
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = 1.2;
+    for (let gy = tableTopY + 18; gy < height; gy += 22) {
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(width, gy);
+      ctx.stroke();
+    }
+    // Reflective horizon highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, tableTopY);
+    ctx.lineTo(width, tableTopY);
+    ctx.stroke();
+    ctx.restore();
+
+    drawStudioVignette(ctx, width, height);
+    return;
+  }
+
+  // -------------------------------------------------------------
   // STYLE: TRADITIONAL POTTERY & TERRACOTTA STUDIO
   // -------------------------------------------------------------
-  if (style === 'traditional-env' || (style === 'smart-match' && smartStudio.surfaceType === 'clay')) {
-    // Earthen terracotta studio wall with kiln warmth
+  if (effectiveStyle === 'traditional-env') {
     const wallGrad = ctx.createRadialGradient(
       width * 0.45,
       height * 0.35,
@@ -635,7 +713,6 @@ function renderUltraRealisticStudio(
     ctx.fillStyle = wallGrad;
     ctx.fillRect(0, 0, width, tableTopY);
 
-    // Handcrafted Terracotta Pedestal / Floor
     const floorGrad = ctx.createLinearGradient(0, tableTopY, 0, height);
     floorGrad.addColorStop(0, '#C9A389');
     floorGrad.addColorStop(0.04, '#B88F73');
@@ -644,7 +721,6 @@ function renderUltraRealisticStudio(
     ctx.fillStyle = floorGrad;
     ctx.fillRect(0, tableTopY, width, height - tableTopY);
 
-    // Beveled pedestal edge highlight
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -657,8 +733,91 @@ function renderUltraRealisticStudio(
   }
 
   // -------------------------------------------------------------
-  // STYLE: HANDCRAFTED WOODEN TOY STUDIO & NATURAL CRAFT WORKBENCH
-  // (Ideal for Wooden Toys, Channapatna, Kondapalli, Bamboo)
+  // STYLE: PREMIUM TEXTILE & HANDLOOM STUDIO
+  // -------------------------------------------------------------
+  if (effectiveStyle === 'premium-studio') {
+    // 1. Soft Draped Linen Wall with Elegant Shadows
+    const wallGrad = ctx.createLinearGradient(0, 0, 0, tableTopY);
+    wallGrad.addColorStop(0, '#F7F3EC');
+    wallGrad.addColorStop(0.5, '#EAE3D5');
+    wallGrad.addColorStop(1, '#D9D0BE');
+    ctx.fillStyle = wallGrad;
+    ctx.fillRect(0, 0, width, tableTopY);
+
+    // Vertical drape shadow folds
+    ctx.save();
+    for (let dx = width * 0.12; dx < width; dx += width * 0.22) {
+      const drapeGrad = ctx.createLinearGradient(dx - 30, 0, dx + 30, 0);
+      drapeGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      drapeGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.04)');
+      drapeGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = drapeGrad;
+      ctx.fillRect(dx - 30, 0, 60, tableTopY);
+    }
+    ctx.restore();
+
+    // 2. Woven Gallery Display Floor
+    const floorGrad = ctx.createLinearGradient(0, tableTopY, 0, height);
+    floorGrad.addColorStop(0, '#D1C6B4');
+    floorGrad.addColorStop(0.05, '#C4B7A3');
+    floorGrad.addColorStop(0.5, '#AFA18D');
+    floorGrad.addColorStop(1, '#8E816D');
+    ctx.fillStyle = floorGrad;
+    ctx.fillRect(0, tableTopY, width, height - tableTopY);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, tableTopY);
+    ctx.lineTo(width, tableTopY);
+    ctx.stroke();
+
+    drawStudioVignette(ctx, width, height);
+    return;
+  }
+
+  // -------------------------------------------------------------
+  // STYLE: LUXURY JEWELRY & METALCRAFT STUDIO
+  // -------------------------------------------------------------
+  if (effectiveStyle === 'jewelry-studio') {
+    // Dark Charcoal Luxury Gallery Wall with Center Spotlight
+    const wallGrad = ctx.createRadialGradient(
+      width * 0.5,
+      height * 0.35,
+      width * 0.05,
+      width * 0.5,
+      height * 0.4,
+      width * 0.7
+    );
+    wallGrad.addColorStop(0, '#3A3843');
+    wallGrad.addColorStop(0.4, '#26242D');
+    wallGrad.addColorStop(1, '#151419');
+    ctx.fillStyle = wallGrad;
+    ctx.fillRect(0, 0, width, tableTopY);
+
+    // Honed Dark Slate / Velvet Luxury Podium
+    const floorGrad = ctx.createLinearGradient(0, tableTopY, 0, height);
+    floorGrad.addColorStop(0, '#282630');
+    floorGrad.addColorStop(0.04, '#1F1E25');
+    floorGrad.addColorStop(0.5, '#16151A');
+    floorGrad.addColorStop(1, '#0C0B0E');
+    ctx.fillStyle = floorGrad;
+    ctx.fillRect(0, tableTopY, width, height - tableTopY);
+
+    // Crisp Silver Horizon Rim Highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, tableTopY);
+    ctx.lineTo(width, tableTopY);
+    ctx.stroke();
+
+    drawStudioVignette(ctx, width, height);
+    return;
+  }
+
+  // -------------------------------------------------------------
+  // STYLE: HANDCRAFTED WOODEN WORKSHOP STUDIO (Default for wood crafts)
   // -------------------------------------------------------------
   // 1. Studio Atelier Wall with Golden Studio Bokeh
   const wallGrad = ctx.createRadialGradient(
@@ -676,7 +835,7 @@ function renderUltraRealisticStudio(
   ctx.fillStyle = wallGrad;
   ctx.fillRect(0, 0, width, tableTopY);
 
-  // Soft studio bokeh orbs in background (out-of-focus atmospheric studio lights)
+  // Soft studio bokeh orbs
   ctx.save();
   const bokehOrbs = [
     { x: width * 0.18, y: height * 0.22, r: width * 0.08, alpha: 0.18 },
@@ -697,17 +856,17 @@ function renderUltraRealisticStudio(
   }
   ctx.restore();
 
-  // 2. Realistic Polished Cedar / Teak Artisan Tabletop (Bottom 26%)
+  // 2. Realistic Polished Cedar / Teak Artisan Tabletop
   const floorGrad = ctx.createLinearGradient(0, tableTopY, 0, height);
-  floorGrad.addColorStop(0, '#DEB887'); // Warm Golden Oak edge
-  floorGrad.addColorStop(0.04, '#CD853F'); // Peru Wood
-  floorGrad.addColorStop(0.2, '#B86F28'); // Warm Rich Amber Teak
-  floorGrad.addColorStop(0.6, '#965518'); // Deep polished woodgrain
-  floorGrad.addColorStop(1, '#6F3A08'); // Rich dark cedar base
+  floorGrad.addColorStop(0, '#DEB887');
+  floorGrad.addColorStop(0.04, '#CD853F');
+  floorGrad.addColorStop(0.2, '#B86F28');
+  floorGrad.addColorStop(0.6, '#965518');
+  floorGrad.addColorStop(1, '#6F3A08');
   ctx.fillStyle = floorGrad;
   ctx.fillRect(0, tableTopY, width, height - tableTopY);
 
-  // Subtle woodgrain texture planks across the tabletop
+  // Woodgrain plank lines
   ctx.save();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
   ctx.lineWidth = 1;
@@ -720,7 +879,7 @@ function renderUltraRealisticStudio(
     ctx.stroke();
   }
 
-  // Tabletop Horizon Edge Highlight (Bright reflective rim light)
+  // Horizon edge highlight
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
   ctx.lineWidth = 3;
   ctx.beginPath();

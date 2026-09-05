@@ -22,7 +22,6 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
     service: 'KalaConnect AI REST Backend',
-    sihStatement: 'SIH26090 - Smart Cataloging for Marginalized Artisans',
     timestamp: new Date().toISOString()
   });
 });

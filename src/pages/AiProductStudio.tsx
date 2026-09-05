@@ -80,21 +80,25 @@ export const AiProductStudio: React.FC = () => {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  // STEP 2: Description & Translation State (Telugu -> English)
+  // STEP 3: Description & Translation State (Telugu -> English)
   const [descriptionInput, setDescriptionInput] = useState<string>(
     'ఇది వెదురుతో చేతితో తయారు చేసిన బుట్ట. ఇది వస్తువులను నిల్వ చేసుకోవడానికి ఉపయోగపడుతుంది.'
   );
   const [selectedLanguage, setSelectedLanguage] = useState<string>('Telugu');
   const [isListening, setIsListening] = useState<boolean>(false);
+  const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'completed'>('idle');
   const [speechSupported, setSpeechSupported] = useState<boolean>(true);
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
   const [translatedEnglish, setTranslatedEnglish] = useState<string>(
     'This is a handmade bamboo basket crafted from natural bamboo. It is suitable for storing household items.'
   );
   const [isEditingTranslation, setIsEditingTranslation] = useState<boolean>(false);
+  const teluguInputRef = useRef<HTMLTextAreaElement>(null);
+  const englishInputRef = useRef<HTMLTextAreaElement>(null);
 
-  // STEP 3: Generated Catalog Fields (Strictly no invented info)
+  // STEP 4: Generated Catalog Fields (Strictly no invented info)
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [productName, setProductName] = useState<string>('Handmade Bamboo Storage Basket');
   const [generatedDescription, setGeneratedDescription] = useState<string>(
@@ -114,7 +118,7 @@ export const AiProductStudio: React.FC = () => {
   const [tagInput, setTagInput] = useState<string>('');
   const [highlightInput, setHighlightInput] = useState<string>('');
 
-  // STEP 4: Real Background Replacement & Interactive Slider State
+  // STEP 2: Real Background Replacement & Interactive Slider State
   const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>('smart-match');
   const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '16:9'>('1:1');
   const [sliderPosition, setSliderPosition] = useState<number>(50); // 0 to 100%
@@ -122,7 +126,7 @@ export const AiProductStudio: React.FC = () => {
   const [enhancedImageDataUrl, setEnhancedImageDataUrl] = useState<string>('');
   const [isProcessingBackground, setIsProcessingBackground] = useState<boolean>(false);
   const [currentStage, setCurrentStage] = useState<ProcessingStage>(PROCESSING_STAGES[0]);
-  const [detectedStudioName, setDetectedStudioName] = useState<string>('Natural Bamboo Craft Studio');
+  const [detectedStudioName, setDetectedStudioName] = useState<string>('Natural Bamboo & Cane Studio');
   const [isolationSensitivity, setIsolationSensitivity] = useState<IsolationSensitivity>('deep-clean');
   const sliderContainerRef = useRef<HTMLDivElement>(null);
   const lastProcessedKeyRef = useRef<string>('');
@@ -215,9 +219,9 @@ export const AiProductStudio: React.FC = () => {
     [isolationSensitivity, showToast]
   );
 
-  // Auto-run background replacement when Step 4 is opened or image/style changes
+  // Auto-run background replacement when Step 2 is opened or image/style changes
   useEffect(() => {
-    if (currentStep === 4 && originalImage) {
+    if (currentStep === 2 && originalImage) {
       executeBackgroundReplacement(
         originalImage,
         category,
@@ -362,6 +366,7 @@ export const AiProductStudio: React.FC = () => {
 
       recognition.onstart = () => {
         setIsListening(true);
+        setVoiceState('recording');
         showToast('Microphone Active 🎙️', `Listening in ${selectedLanguage}... Please speak now.`, 'info');
       };
 
@@ -375,17 +380,30 @@ export const AiProductStudio: React.FC = () => {
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error', event.error);
         setIsListening(false);
+        setVoiceState('idle');
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        setVoiceState('completed');
+        showToast('Recording Complete ✓', 'Telugu transcript captured. You can edit or translate to English.', 'success');
       };
 
       recognition.start();
     } catch (e) {
       console.error(e);
       setIsListening(false);
+      setVoiceState('idle');
     }
+  };
+
+  // Record Telugu speech again
+  const handleRecordAgain = () => {
+    setDescriptionInput('');
+    setVoiceState('idle');
+    setTimeout(() => {
+      handleVoiceToggle();
+    }, 150);
   };
 
   // Perform Telugu -> English AI Translation
@@ -437,7 +455,7 @@ export const AiProductStudio: React.FC = () => {
         'Direct fair-trade rural artisan creation'
       ]);
 
-      setCurrentStep(3);
+      setCurrentStep(4);
       showToast('AI Catalog Generated! ✨', 'All specifications synthesized. You can edit any field.', 'success');
     } catch (error) {
       console.error('AI Catalog error:', error);
@@ -586,11 +604,11 @@ export const AiProductStudio: React.FC = () => {
           <div className="flex items-center justify-between overflow-x-auto pb-2 sm:pb-0 gap-2 text-xs font-semibold">
             {[
               { num: 1, label: '1. Photo Capture' },
-              { num: 2, label: '2. Telugu Voice & Translate' },
-              { num: 3, label: '3. AI Catalog' },
-              { num: 4, label: '4. AI Background Replacement' },
+              { num: 2, label: '2. AI Studio & Background' },
+              { num: 3, label: '3. Telugu Voice & Translate' },
+              { num: 4, label: '4. AI Catalog Synthesis' },
               { num: 5, label: '5. Smart Pricing' },
-              { num: 6, label: '6. Review & Edit' },
+              { num: 6, label: '6. Review & Publish' },
               { num: 7, label: '7. Live Store' }
             ].map((step) => {
               const isActive = currentStep === step.num;
@@ -785,7 +803,7 @@ export const AiProductStudio: React.FC = () => {
                       <button
                         type="button"
                         onClick={startCamera}
-                        className="py-3 px-4 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                        className="py-3.5 px-4 min-h-[44px] rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                       >
                         <Camera className="w-4 h-4" />
                         <span>TAKE PHOTO</span>
@@ -793,16 +811,24 @@ export const AiProductStudio: React.FC = () => {
 
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="py-3 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer border border-stone-200"
+                        onClick={() => galleryInputRef.current?.click()}
+                        className="py-3.5 px-4 min-h-[44px] rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer border border-stone-200"
                       >
                         <Upload className="w-4 h-4" />
-                        <span>UPLOAD FROM DEVICE</span>
+                        <span>UPLOAD FROM GALLERY</span>
                       </button>
                     </div>
 
                     <input
                       ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <input
+                      ref={galleryInputRef}
                       type="file"
                       accept="image/*"
                       onChange={handleFileUpload}
@@ -843,9 +869,18 @@ export const AiProductStudio: React.FC = () => {
                               setOriginalImage(craft.image);
                               setProductImage(craft.image);
                               setDescriptionInput(craft.voiceText);
+                              executeBackgroundReplacement(
+                                craft.image,
+                                category,
+                                craft.voiceText,
+                                backgroundStyle,
+                                aspectRatio,
+                                isolationSensitivity,
+                                true
+                              );
                               showToast('Craft Selected', `Loaded: ${craft.label}`, 'info');
                             }}
-                            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 hover:border-amber-300 border border-stone-200 text-stone-700 transition-colors"
+                            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 hover:border-amber-300 border border-stone-200 text-stone-700 transition-colors cursor-pointer"
                           >
                             {craft.label}
                           </button>
@@ -858,7 +893,383 @@ export const AiProductStudio: React.FC = () => {
                 <div className="flex justify-end pt-4 border-t border-stone-100">
                   <button
                     onClick={() => setCurrentStep(2)}
-                    className="px-6 py-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                    className="px-6 py-3.5 min-h-[44px] rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <span>Proceed to AI Studio & Background</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* -------------------------------------------------------------------
+                STEP 2: REAL AI Background Replacement & Before/After Slider
+               ------------------------------------------------------------------- */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+                    <Sliders className="w-5 h-5 text-amber-700" />
+                    <span>Step 2 — Real AI Background Replacement & Studio Selection</span>
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Your original background (room, floor, or clutter) is completely removed. Your authentic craft item is preserved and placed into a matching studio environment.
+                  </p>
+                </div>
+
+                {/* Multi-Stage Processing Visual Indicator */}
+                {isProcessingBackground && (
+                  <div className="bg-stone-900 text-white p-5 rounded-2xl border border-stone-700 space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-400 font-extrabold text-xs">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>{currentStage.label}</span>
+                      </div>
+                      <span className="text-[11px] font-mono text-stone-400">Stage {currentStage.step} of 7</span>
+                    </div>
+                    <div className="w-full bg-stone-800 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-amber-500 h-full transition-all duration-300"
+                        style={{ width: `${(currentStage.step / 7) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-stone-300">{currentStage.detail}</p>
+                  </div>
+                )}
+
+                {/* =================================================================
+                    INTERACTIVE BEFORE / AFTER SPLIT SLIDER
+                   ================================================================= */}
+                <div className="space-y-3">
+                  <div
+                    ref={sliderContainerRef}
+                    onMouseDown={handleMouseDown}
+                    onTouchMove={handleTouchMove}
+                    className={`relative w-full aspect-square sm:aspect-4/3 max-h-[520px] rounded-3xl overflow-hidden select-none cursor-ew-resize border-2 border-stone-800 shadow-2xl ${
+                      backgroundStyle === 'transparent'
+                        ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
+                        : 'bg-stone-950'
+                    }`}
+                  >
+                    {/* Layer 1: AI Enhanced Transformed Studio Image */}
+                    <div
+                      className={`absolute inset-0 w-full h-full flex items-center justify-center ${
+                        backgroundStyle === 'transparent'
+                          ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
+                          : 'bg-stone-900'
+                      }`}
+                    >
+                      <img
+                        src={enhancedImageDataUrl || originalImage}
+                        alt="AI Enhanced Studio"
+                        className="w-full h-full object-contain"
+                      />
+                      <div className="absolute top-4 right-4 bg-amber-800/90 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-black shadow-md border border-amber-500/30 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>AI ENHANCED STUDIO</span>
+                      </div>
+                    </div>
+
+                    {/* Layer 2: Original Uploaded Image (Clipped by slider position) */}
+                    <div
+                      className="absolute inset-y-0 left-0 overflow-hidden bg-stone-950"
+                      style={{ width: `${sliderPosition}%` }}
+                    >
+                      <div
+                        className="relative w-full h-full"
+                        style={{
+                          width: sliderContainerRef.current?.clientWidth || 600,
+                          height: sliderContainerRef.current?.clientHeight || 450
+                        }}
+                      >
+                        <img
+                          src={originalImage}
+                          alt="Original Raw"
+                          className="w-full h-full object-cover filter brightness-95"
+                        />
+                        <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-xs text-stone-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-md border border-stone-700">
+                          ORIGINAL PHOTO
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Divider Line & Draggable Handle */}
+                    <div
+                      className="absolute inset-y-0 w-1 bg-white shadow-[0_0_12px_rgba(0,0,0,0.6)] z-20 flex items-center justify-center pointer-events-none"
+                      style={{ left: `${sliderPosition}%` }}
+                    >
+                      <div className="w-10 h-10 -ml-0.5 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xl border-2 border-white ring-2 ring-black/50">
+                        ↔
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Range Slider for Accessibility */}
+                  <div className="flex items-center gap-3 px-2">
+                    <span className="text-[11px] font-black text-stone-500 uppercase">Original</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={sliderPosition}
+                      onChange={(e) => setSliderPosition(Number(e.target.value))}
+                      className="flex-1 accent-amber-700 cursor-pointer"
+                    />
+                    <span className="text-[11px] font-black text-amber-800 uppercase">AI Studio</span>
+                  </div>
+                </div>
+
+                {/* 5 ACTION BUTTONS FOR BEFORE / AFTER */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 bg-stone-100 rounded-2xl border border-stone-200">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        executeBackgroundReplacement(
+                          originalImage,
+                          category,
+                          generatedDescription,
+                          backgroundStyle,
+                          aspectRatio,
+                          isolationSensitivity,
+                          true
+                        )
+                      }
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Regenerate</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBackgroundStyle('smart-match');
+                        executeBackgroundReplacement(
+                          originalImage,
+                          category,
+                          generatedDescription,
+                          'smart-match',
+                          aspectRatio,
+                          isolationSensitivity,
+                          true
+                        );
+                      }}
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Reset</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const styleSelector = document.getElementById('studio-environment-selector');
+                        styleSelector?.scrollIntoView({ behavior: 'smooth' });
+                        showToast('Studio Styles', 'Choose a background from the options below.', 'info');
+                      }}
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Palette className="w-3.5 h-3.5 text-purple-700" />
+                      <span>Change Background</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSliderPosition(100);
+                        showToast('Original Preview', 'Showing raw unedited photo.', 'info');
+                      }}
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs border border-stone-300 transition-colors cursor-pointer"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (enhancedImageDataUrl) setProductImage(enhancedImageDataUrl);
+                      setCurrentStep(3);
+                      showToast('Photo Confirmed! 📸', 'AI Studio product photo locked for catalog.', 'success');
+                    }}
+                    className="px-6 py-2.5 min-h-[44px] rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-98 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Use This Photo</span>
+                  </button>
+                </div>
+
+                {/* AI Cleanliness & Plate Removal Sensitivity Selector */}
+                <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/90 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="w-4 h-4 text-amber-800" />
+                      <span className="text-xs font-black text-stone-900 uppercase tracking-wide">
+                        AI Segmentation & Cleanliness Mode
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-bold text-amber-900 bg-amber-200/70 px-2 py-0.5 rounded-full">
+                      Adaptive Saliency Filter
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-600">
+                    Removes messy room walls, cluttered desks, and white plates while keeping 100% of your artisan craft colors, lacquer, and carving details intact.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                    {[
+                      {
+                        id: 'deep-clean' as IsolationSensitivity,
+                        title: '✂️ Deep Clean (Removes Wall & Plate)',
+                        desc: 'Cuts away white plates, room walls, and shelves. Recommended for real homemade craft photos.'
+                      },
+                      {
+                        id: 'balanced' as IsolationSensitivity,
+                        title: '🌟 Smart AI Clean',
+                        desc: 'Balanced isolation with gentle craft contact shadows.'
+                      },
+                      {
+                        id: 'delicate' as IsolationSensitivity,
+                        title: '🎨 Delicate Craft Edges',
+                        desc: 'Preserves finest hair fringe, textile threads, and softest silhouettes.'
+                      }
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => {
+                          setIsolationSensitivity(mode.id);
+                          executeBackgroundReplacement(
+                            originalImage,
+                            category,
+                            generatedDescription,
+                            backgroundStyle,
+                            aspectRatio,
+                            mode.id,
+                            true
+                          );
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isolationSensitivity === mode.id
+                            ? 'bg-white border-amber-600 ring-2 ring-amber-600 shadow-xs'
+                            : 'bg-white/60 hover:bg-white border-amber-200/70 text-stone-700'
+                        }`}
+                      >
+                        <span className="text-xs font-bold text-stone-900 block">{mode.title}</span>
+                        <span className="text-[10px] text-stone-500 leading-tight block mt-0.5">{mode.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Studio Background Style Selector */}
+                <div id="studio-environment-selector" className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-stone-800 uppercase tracking-wide flex items-center gap-1.5">
+                      <Palette className="w-4 h-4 text-amber-700" />
+                      <span>Select Studio Environment:</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-amber-800">
+                      Active: {detectedStudioName}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                    {BACKGROUND_STYLES.map((bg) => {
+                      const isSelected = backgroundStyle === bg.id;
+                      return (
+                        <button
+                          key={bg.id}
+                          type="button"
+                          onClick={() => {
+                            setBackgroundStyle(bg.id);
+                            executeBackgroundReplacement(
+                              originalImage,
+                              category,
+                              generatedDescription,
+                              bg.id,
+                              aspectRatio,
+                              isolationSensitivity,
+                              true
+                            );
+                          }}
+                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-amber-100/90 border-amber-600 ring-2 ring-amber-600 shadow-xs'
+                              : 'bg-stone-50 hover:bg-stone-100 border-stone-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-4 h-4 rounded-full border border-stone-300"
+                              style={{ backgroundColor: bg.accentColor === 'transparent' ? '#FFFFFF' : bg.accentColor }}
+                            />
+                            <span className="text-xs font-bold text-stone-900 line-clamp-1">{bg.name}</span>
+                          </div>
+                          <p className="text-[10px] text-stone-500 mt-1 leading-tight line-clamp-2">
+                            {bg.description}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Aspect Ratio Selector */}
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex items-center justify-between gap-4">
+                  <span className="text-xs font-bold text-stone-700 uppercase flex items-center gap-1.5">
+                    <Maximize2 className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Aspect Ratio:</span>
+                  </span>
+
+                  <div className="flex gap-2">
+                    {[
+                      { id: '1:1', label: '1:1 Square (E-Commerce)' },
+                      { id: '4:5', label: '4:5 Portrait' },
+                      { id: '16:9', label: '16:9 Banner' }
+                    ].map((ratio) => (
+                      <button
+                        key={ratio.id}
+                        type="button"
+                        onClick={() => {
+                          setAspectRatio(ratio.id as any);
+                          executeBackgroundReplacement(
+                            originalImage,
+                            category,
+                            generatedDescription,
+                            backgroundStyle,
+                            ratio.id as any,
+                            isolationSensitivity,
+                            true
+                          );
+                        }}
+                        className={`px-3 py-1.5 min-h-[36px] rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                          aspectRatio === ratio.id
+                            ? 'bg-amber-700 text-white border-amber-700 shadow-2xs'
+                            : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-300'
+                        }`}
+                      >
+                        {ratio.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-stone-100">
+                  <button
+                    onClick={() => setCurrentStep(1)}
+                    className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back to Photo Capture</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (enhancedImageDataUrl) setProductImage(enhancedImageDataUrl);
+                      setCurrentStep(3);
+                    }}
+                    className="px-7 py-3 min-h-[44px] rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
                   >
                     <span>Proceed to Telugu Voice & Description</span>
                     <ArrowRight className="w-4 h-4" />
@@ -868,17 +1279,17 @@ export const AiProductStudio: React.FC = () => {
             )}
 
             {/* -------------------------------------------------------------------
-                STEP 2: Telugu Voice Input & Telugu -> English AI Translation
+                STEP 3: Telugu Voice Input & Telugu -> English AI Translation
                ------------------------------------------------------------------- */}
-            {currentStep === 2 && (
+            {currentStep === 3 && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <Languages className="w-5 h-5 text-amber-700" />
-                    <span>Step 2 — Telugu Voice Input & AI Translation</span>
+                    <span>Step 3 — Telugu Voice Input & AI Translation</span>
                   </h3>
                   <p className="text-xs text-stone-500 mt-1">
-                    Speak or type your product description in Telugu. KalaConnect AI will translate it into professional e-commerce English without inventing unverified facts.
+                    Speak or type your product description in Telugu. KalaConnect AI will transcribe, allow you to edit, translate to professional e-commerce English, and synthesize your catalog.
                   </p>
                 </div>
 
@@ -905,45 +1316,86 @@ export const AiProductStudio: React.FC = () => {
                     </select>
                   </div>
 
-                  {/* Telugu Voice / Text Input Box */}
+                  {/* Step 3A: Telugu Voice / Text Input Box */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-stone-700 uppercase tracking-wide">
-                        Your Description (Telugu):
+                        3A — Telugu Transcript (Editable):
                       </label>
                       <button
                         type="button"
                         onClick={handleVoiceToggle}
-                        className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
-                          isListening
+                        className={`inline-flex items-center gap-2 px-3.5 py-2 min-h-[40px] rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                          voiceState === 'recording' || isListening
                             ? 'bg-rose-600 text-white animate-pulse'
+                            : voiceState === 'completed'
+                            ? 'bg-emerald-700 text-white'
                             : 'bg-amber-700 hover:bg-amber-800 text-white'
                         }`}
                       >
-                        {isListening ? (
+                        {voiceState === 'recording' || isListening ? (
                           <>
                             <MicOff className="w-3.5 h-3.5" />
-                            <span>Stop Recording</span>
+                            <span>Recording... (Tap to Finish)</span>
+                          </>
+                        ) : voiceState === 'completed' ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Recording Complete ✓</span>
                           </>
                         ) : (
                           <>
                             <Mic className="w-3.5 h-3.5" />
-                            <span>Speak in {selectedLanguage}</span>
+                            <span>Tap to Speak in {selectedLanguage}</span>
                           </>
                         )}
                       </button>
                     </div>
 
                     <textarea
+                      ref={teluguInputRef}
                       rows={3}
                       value={descriptionInput}
                       onChange={(e) => setDescriptionInput(e.target.value)}
                       placeholder="ఉదాహరణ: ఇది వెదురుతో చేతితో తయారు చేసిన బుట్ట. ఇది వస్తువులను నిల్వ చేసుకోవడానికి ఉపయోగపడుతుంది."
-                      className="w-full rounded-2xl border border-stone-300 p-4 text-xs sm:text-sm leading-relaxed focus:outline-none focus:border-amber-700 bg-white font-medium"
+                      className="w-full rounded-2xl border border-stone-300 p-4 text-xs sm:text-sm leading-relaxed focus:outline-none focus:border-amber-700 bg-white font-medium shadow-2xs"
                     />
 
+                    {/* Telugu Action Buttons: [Edit], [Record Again], [Translate to English] */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => teluguInputRef.current?.focus()}
+                          className="px-3.5 py-2 min-h-[40px] rounded-xl bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-stone-500" />
+                          <span>Edit Transcript</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleRecordAgain}
+                          className="px-3.5 py-2 min-h-[40px] rounded-xl bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Record Again</span>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleTranslateTeluguToEnglish}
+                        disabled={isTranslating}
+                        className="px-5 py-2 min-h-[40px] rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Wand2 className={`w-3.5 h-3.5 ${isTranslating ? 'animate-spin' : ''}`} />
+                        <span>{isTranslating ? 'Translating to English...' : 'Translate to English'}</span>
+                      </button>
+                    </div>
+
                     {/* Quick Telugu Craft Voice Samples */}
-                    <div className="pt-1">
+                    <div className="pt-2 border-t border-amber-200/50">
                       <span className="text-[11px] font-bold text-stone-600">Sample Telugu Voice Inputs:</span>
                       <div className="flex flex-wrap gap-2 mt-1.5">
                         {[
@@ -956,7 +1408,7 @@ export const AiProductStudio: React.FC = () => {
                             key={idx}
                             type="button"
                             onClick={() => setDescriptionInput(prompt)}
-                            className="text-[10px] bg-white hover:bg-amber-100 hover:text-amber-900 text-stone-700 px-2.5 py-1 rounded-lg border border-stone-200 transition-colors text-left font-medium"
+                            className="text-[10px] bg-white hover:bg-amber-100 hover:text-amber-900 text-stone-700 px-2.5 py-1 rounded-lg border border-stone-200 transition-colors text-left font-medium cursor-pointer"
                           >
                             “{prompt.substring(0, 42)}...”
                           </button>
@@ -965,37 +1417,28 @@ export const AiProductStudio: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Translation Action Trigger */}
-                  <div className="flex items-center justify-between pt-2">
-                    <button
-                      type="button"
-                      onClick={handleTranslateTeluguToEnglish}
-                      disabled={isTranslating}
-                      className="px-5 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      <Wand2 className={`w-3.5 h-3.5 ${isTranslating ? 'animate-spin' : ''}`} />
-                      <span>{isTranslating ? 'Translating to English...' : 'Translate to English'}</span>
-                    </button>
-                  </div>
-
-                  {/* TRANSLATION PREVIEW CARD */}
+                  {/* Step 3B: TRANSLATION PREVIEW CARD */}
                   <div className="bg-white rounded-2xl p-5 border border-stone-200 space-y-3 shadow-2xs">
                     <div className="flex items-center justify-between border-b border-stone-100 pb-2">
                       <span className="text-xs font-black text-amber-900 uppercase tracking-wide">
-                        English Description (Translated):
+                        3B — Professional English Description (Translated):
                       </span>
                       <button
                         type="button"
-                        onClick={() => setIsEditingTranslation(!isEditingTranslation)}
+                        onClick={() => {
+                          setIsEditingTranslation(!isEditingTranslation);
+                          if (!isEditingTranslation) setTimeout(() => englishInputRef.current?.focus(), 50);
+                        }}
                         className="text-[11px] text-stone-600 hover:text-amber-800 font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <Edit3 className="w-3 h-3" />
-                        <span>{isEditingTranslation ? 'Done Editing' : 'Edit Translation'}</span>
+                        <span>{isEditingTranslation ? 'Done Editing' : 'Edit English'}</span>
                       </button>
                     </div>
 
                     {isEditingTranslation ? (
                       <textarea
+                        ref={englishInputRef}
                         rows={3}
                         value={translatedEnglish}
                         onChange={(e) => setTranslatedEnglish(e.target.value)}
@@ -1007,35 +1450,47 @@ export const AiProductStudio: React.FC = () => {
                       </p>
                     )}
 
-                    <div className="flex items-center justify-between pt-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
                       <span className="text-[11px] text-stone-400">
                         Rule enforced: Unspecified specifications marked as "Not specified".
                       </span>
-                      <button
-                        type="button"
-                        onClick={handleTranslateTeluguToEnglish}
-                        className="text-xs font-bold text-amber-800 hover:text-amber-900 flex items-center gap-1 cursor-pointer"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>Regenerate</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleTranslateTeluguToEnglish}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold text-amber-800 hover:text-amber-900 border border-stone-200 flex items-center gap-1 cursor-pointer"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Regenerate</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleGenerateAICatalog}
+                          disabled={isGenerating}
+                          className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>{isGenerating ? 'Generating Catalog...' : 'Generate AI Catalog'}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-stone-100">
                   <button
-                    onClick={() => setCurrentStep(1)}
-                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1 cursor-pointer"
+                    onClick={() => setCurrentStep(2)}
+                    className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1 cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
+                    <span>Back to AI Studio</span>
                   </button>
 
                   <button
                     onClick={handleGenerateAICatalog}
                     disabled={isGenerating}
-                    className="px-6 py-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    className="px-6 py-3.5 min-h-[44px] rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
                   >
                     <Sparkles className="w-4 h-4 text-amber-300" />
                     <span>Continue to AI Catalog</span>
@@ -1046,14 +1501,14 @@ export const AiProductStudio: React.FC = () => {
             )}
 
             {/* -------------------------------------------------------------------
-                STEP 3: AI Generated Catalog Specifications
+                STEP 4: AI Generated Catalog Specifications
                ------------------------------------------------------------------- */}
-            {currentStep === 3 && (
+            {currentStep === 4 && (
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-amber-700" />
-                    <span>Step 3 — AI Catalog Generation (Editable)</span>
+                    <span>Step 4 — AI Catalog Generation (Editable)</span>
                   </h3>
                   <p className="text-xs text-stone-500 mt-1">
                     Review and fine-tune your catalog fields. KalaConnect AI preserves your true craftsmanship and avoids inventing unverified claims.
@@ -1275,392 +1730,16 @@ export const AiProductStudio: React.FC = () => {
 
                 <div className="flex items-center justify-between pt-4 border-t border-stone-100">
                   <button
-                    onClick={() => setCurrentStep(2)}
-                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1 cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentStep(4)}
-                    className="px-6 py-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-                  >
-                    <span>Proceed to Real Background Replacement</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* -------------------------------------------------------------------
-                STEP 4: REAL AI Background Replacement & Before/After Slider
-               ------------------------------------------------------------------- */}
-            {currentStep === 4 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                    <Sliders className="w-5 h-5 text-amber-700" />
-                    <span>Step 4 — Real AI Background Replacement</span>
-                  </h3>
-                  <p className="text-xs text-stone-500 mt-1">
-                    Your original background (room, floor, or clutter) is completely removed. Your authentic craft item is preserved and placed into a matching studio environment.
-                  </p>
-                </div>
-
-                {/* Multi-Stage Processing Visual Indicator */}
-                {isProcessingBackground && (
-                  <div className="bg-stone-900 text-white p-5 rounded-2xl border border-stone-700 space-y-3 shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-amber-400 font-extrabold text-xs">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>{currentStage.label}</span>
-                      </div>
-                      <span className="text-[11px] font-mono text-stone-400">Stage {currentStage.step} of 7</span>
-                    </div>
-                    <div className="w-full bg-stone-800 h-2 rounded-full overflow-hidden">
-                      <div
-                        className="bg-amber-500 h-full transition-all duration-300"
-                        style={{ width: `${(currentStage.step / 7) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-[11px] text-stone-300">{currentStage.detail}</p>
-                  </div>
-                )}
-
-                {/* =================================================================
-                    INTERACTIVE BEFORE / AFTER SPLIT SLIDER
-                   ================================================================= */}
-                <div className="space-y-3">
-                  <div
-                    ref={sliderContainerRef}
-                    onMouseDown={handleMouseDown}
-                    onTouchMove={handleTouchMove}
-                    className={`relative w-full aspect-square sm:aspect-4/3 max-h-[520px] rounded-3xl overflow-hidden select-none cursor-ew-resize border-2 border-stone-800 shadow-2xl ${
-                      backgroundStyle === 'transparent'
-                        ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
-                        : 'bg-stone-950'
-                    }`}
-                  >
-                    {/* Layer 1: AI Enhanced Transformed Studio Image */}
-                    <div
-                      className={`absolute inset-0 w-full h-full flex items-center justify-center ${
-                        backgroundStyle === 'transparent'
-                          ? 'bg-stone-100 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] bg-[size:16px_16px]'
-                          : 'bg-stone-900'
-                      }`}
-                    >
-                      <img
-                        src={enhancedImageDataUrl || originalImage}
-                        alt="AI Enhanced Studio"
-                        className="w-full h-full object-contain"
-                      />
-                      <div className="absolute top-4 right-4 bg-amber-800/90 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-black shadow-md border border-amber-500/30 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        <span>AI ENHANCED STUDIO</span>
-                      </div>
-                    </div>
-
-                    {/* Layer 2: Original Uploaded Image (Clipped by slider position) */}
-                    <div
-                      className="absolute inset-y-0 left-0 overflow-hidden bg-stone-950"
-                      style={{ width: `${sliderPosition}%` }}
-                    >
-                      <div
-                        className="relative w-full h-full"
-                        style={{
-                          width: sliderContainerRef.current?.clientWidth || 600,
-                          height: sliderContainerRef.current?.clientHeight || 450
-                        }}
-                      >
-                        <img
-                          src={originalImage}
-                          alt="Original Raw"
-                          className="w-full h-full object-cover filter brightness-95"
-                        />
-                        <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-xs text-stone-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-md border border-stone-700">
-                          ORIGINAL PHOTO
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Divider Line & Draggable Handle */}
-                    <div
-                      className="absolute inset-y-0 w-1 bg-white shadow-[0_0_12px_rgba(0,0,0,0.6)] z-20 flex items-center justify-center pointer-events-none"
-                      style={{ left: `${sliderPosition}%` }}
-                    >
-                      <div className="w-10 h-10 -ml-0.5 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xl border-2 border-white ring-2 ring-black/50">
-                        ↔
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Range Slider for Accessibility */}
-                  <div className="flex items-center gap-3 px-2">
-                    <span className="text-[11px] font-black text-stone-500 uppercase">Original</span>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={sliderPosition}
-                      onChange={(e) => setSliderPosition(Number(e.target.value))}
-                      className="flex-1 accent-amber-700 cursor-pointer"
-                    />
-                    <span className="text-[11px] font-black text-amber-800 uppercase">AI Studio</span>
-                  </div>
-                </div>
-
-                {/* 5 ACTION BUTTONS FOR BEFORE / AFTER */}
-                <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 bg-stone-100 rounded-2xl border border-stone-200">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        executeBackgroundReplacement(
-                          originalImage,
-                          category,
-                          generatedDescription,
-                          backgroundStyle,
-                          aspectRatio,
-                          isolationSensitivity,
-                          true
-                        )
-                      }
-                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
-                      <span>Regenerate</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBackgroundStyle('smart-match');
-                        executeBackgroundReplacement(
-                          originalImage,
-                          category,
-                          generatedDescription,
-                          'smart-match',
-                          aspectRatio,
-                          isolationSensitivity,
-                          true
-                        );
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
-                      <span>Reset</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const styleSelector = document.getElementById('studio-environment-selector');
-                        styleSelector?.scrollIntoView({ behavior: 'smooth' });
-                        showToast('Studio Styles', 'Choose a background from the options below.', 'info');
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Palette className="w-3.5 h-3.5 text-purple-700" />
-                      <span>Change Background</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSliderPosition(100);
-                        showToast('Original Preview', 'Showing raw unedited photo.', 'info');
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs border border-stone-300 transition-colors cursor-pointer"
-                    >
-                      Try Again
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (enhancedImageDataUrl) setProductImage(enhancedImageDataUrl);
-                      setCurrentStep(5);
-                      showToast('Image Confirmed! 📸', 'AI Studio product image locked for catalog.', 'success');
-                    }}
-                    className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-98 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>Use This Image</span>
-                  </button>
-                </div>
-
-                {/* AI Cleanliness & Plate Removal Sensitivity Selector */}
-                <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/90 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <SlidersHorizontal className="w-4 h-4 text-amber-800" />
-                      <span className="text-xs font-black text-stone-900 uppercase tracking-wide">
-                        AI Segmentation & Cleanliness Mode
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-bold text-amber-900 bg-amber-200/70 px-2 py-0.5 rounded-full">
-                      Adaptive Saliency Filter
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-stone-600">
-                    Removes messy room walls, cluttered desks, and white plates while keeping 100% of your artisan craft colors, lacquer, and carving details intact.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                    {[
-                      {
-                        id: 'deep-clean' as IsolationSensitivity,
-                        title: '✂️ Deep Clean (Removes Wall & Plate)',
-                        desc: 'Cuts away white plates, room walls, and shelves. Recommended for real homemade craft photos.'
-                      },
-                      {
-                        id: 'balanced' as IsolationSensitivity,
-                        title: '🌟 Smart AI Clean',
-                        desc: 'Balanced isolation with gentle craft contact shadows.'
-                      },
-                      {
-                        id: 'delicate' as IsolationSensitivity,
-                        title: '🎨 Delicate Craft Edges',
-                        desc: 'Preserves finest hair fringe, textile threads, and softest silhouettes.'
-                      }
-                    ].map((mode) => (
-                      <button
-                        key={mode.id}
-                        type="button"
-                        onClick={() => {
-                          setIsolationSensitivity(mode.id);
-                          executeBackgroundReplacement(
-                            originalImage,
-                            category,
-                            generatedDescription,
-                            backgroundStyle,
-                            aspectRatio,
-                            mode.id,
-                            true
-                          );
-                        }}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          isolationSensitivity === mode.id
-                            ? 'bg-white border-amber-600 ring-2 ring-amber-600 shadow-xs'
-                            : 'bg-white/60 hover:bg-white border-amber-200/70 text-stone-700'
-                        }`}
-                      >
-                        <span className="text-xs font-bold text-stone-900 block">{mode.title}</span>
-                        <span className="text-[10px] text-stone-500 leading-tight block mt-0.5">{mode.desc}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Studio Background Style Selector (Section 14) */}
-                <div id="studio-environment-selector" className="space-y-3 pt-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-stone-800 uppercase tracking-wide flex items-center gap-1.5">
-                      <Palette className="w-4 h-4 text-amber-700" />
-                      <span>Select Studio Environment:</span>
-                    </label>
-                    <span className="text-[11px] font-bold text-amber-800">
-                      Active: {detectedStudioName}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {BACKGROUND_STYLES.map((bg) => {
-                      const isSelected = backgroundStyle === bg.id;
-                      return (
-                        <button
-                          key={bg.id}
-                          type="button"
-                          onClick={() => {
-                            setBackgroundStyle(bg.id);
-                            executeBackgroundReplacement(
-                              originalImage,
-                              category,
-                              generatedDescription,
-                              bg.id,
-                              aspectRatio,
-                              isolationSensitivity,
-                              true
-                            );
-                          }}
-                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-amber-100/90 border-amber-600 ring-2 ring-amber-600 shadow-xs'
-                              : 'bg-stone-50 hover:bg-stone-100 border-stone-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-4 h-4 rounded-full border border-stone-300"
-                              style={{ backgroundColor: bg.accentColor === 'transparent' ? '#FFFFFF' : bg.accentColor }}
-                            />
-                            <span className="text-xs font-bold text-stone-900 line-clamp-1">{bg.name}</span>
-                          </div>
-                          <p className="text-[10px] text-stone-500 mt-1 leading-tight line-clamp-2">
-                            {bg.description}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Aspect Ratio Selector */}
-                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex items-center justify-between gap-4">
-                  <span className="text-xs font-bold text-stone-700 uppercase flex items-center gap-1.5">
-                    <Maximize2 className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Aspect Ratio:</span>
-                  </span>
-
-                  <div className="flex gap-2">
-                    {[
-                      { id: '1:1', label: '1:1 Square (E-Commerce)' },
-                      { id: '4:5', label: '4:5 Portrait' },
-                      { id: '16:9', label: '16:9 Banner' }
-                    ].map((ratio) => (
-                      <button
-                        key={ratio.id}
-                        type="button"
-                        onClick={() => {
-                          setAspectRatio(ratio.id as any);
-                          executeBackgroundReplacement(
-                            originalImage,
-                            category,
-                            generatedDescription,
-                            backgroundStyle,
-                            ratio.id as any,
-                            isolationSensitivity,
-                            true
-                          );
-                        }}
-                        className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                          aspectRatio === ratio.id
-                            ? 'bg-amber-700 text-white border-amber-700 shadow-2xs'
-                            : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-300'
-                        }`}
-                      >
-                        {ratio.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-stone-100">
-                  <button
                     onClick={() => setCurrentStep(3)}
-                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1 cursor-pointer"
+                    className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1 cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
+                    <span>Back to Telugu Voice</span>
                   </button>
 
                   <button
-                    onClick={() => {
-                      if (enhancedImageDataUrl) setProductImage(enhancedImageDataUrl);
-                      setCurrentStep(5);
-                    }}
-                    className="px-7 py-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                    onClick={() => setCurrentStep(5)}
+                    className="px-6 py-3.5 min-h-[44px] rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
                   >
                     <span>Proceed to Smart Price Assistant</span>
                     <ArrowRight className="w-4 h-4" />
