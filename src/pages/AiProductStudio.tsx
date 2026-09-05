@@ -70,12 +70,8 @@ export const AiProductStudio: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   // STEP 1: Image Upload / Camera State
-  const [productImage, setProductImage] = useState<string>(
-    'https://images.unsplash.com/photo-1590736969955-71cc94801759?w=600&auto=format&fit=crop&q=80'
-  );
-  const [originalImage, setOriginalImage] = useState<string>(
-    'https://images.unsplash.com/photo-1590736969955-71cc94801759?w=600&auto=format&fit=crop&q=80'
-  );
+  const [productImage, setProductImage] = useState<string>('./assets/products/artisan_watch.jpg');
+  const [originalImage, setOriginalImage] = useState<string>('./assets/products/artisan_watch.jpg');
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -84,7 +80,7 @@ export const AiProductStudio: React.FC = () => {
 
   // STEP 3: Description & Translation State (Telugu -> English)
   const [descriptionInput, setDescriptionInput] = useState<string>(
-    'ఇది వెదురుతో చేతితో తయారు చేసిన బుట్ట. ఇది వస్తువులను నిల్వ చేసుకోవడానికి ఉపయోగపడుతుంది.'
+    'ఇది చేతితో రూపొందించిన క్లాసిక్ రోజ్ గోల్డ్ అనలాగ్ వాచ్. సొగసైన రోజ్ గోల్డ్ ఫినిషింగ్ మరియు అత్యున్నత నాణ్యతతో కూడిన చేతి గడియారం.'
   );
   const [selectedLanguage, setSelectedLanguage] = useState<string>('Telugu');
   const [isListening, setIsListening] = useState<boolean>(false);
@@ -92,7 +88,7 @@ export const AiProductStudio: React.FC = () => {
   const [speechSupported, setSpeechSupported] = useState<boolean>(true);
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
   const [translatedEnglish, setTranslatedEnglish] = useState<string>(
-    'This is a handmade bamboo basket crafted from natural bamboo. It is suitable for storing household items.'
+    'This is a handcrafted classic rose gold analog watch with a minimalist dial, scratch-resistant crystal, and adjustable stainless steel mesh strap.'
   );
   const [isEditingTranslation, setIsEditingTranslation] = useState<boolean>(false);
   const teluguInputRef = useRef<HTMLTextAreaElement>(null);
@@ -100,19 +96,20 @@ export const AiProductStudio: React.FC = () => {
 
   // STEP 4: Generated Catalog Fields (Strictly no invented info)
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [productName, setProductName] = useState<string>('Handmade Bamboo Storage Basket');
+  const [productName, setProductName] = useState<string>('Classic Rose Gold Minimalist Artisan Watch');
   const [generatedDescription, setGeneratedDescription] = useState<string>(
-    'This is a handmade bamboo basket crafted from natural bamboo. It is suitable for storing household items.'
+    'A masterfully crafted analog timepiece uniting heritage minimalist metallurgy with contemporary luxury. Features a polished rose gold stainless casing, scratch-resistant mineral crystal glass, an ultra-quiet Japanese quartz movement, and an artisan-stitched mesh strap.'
   );
-  const [category, setCategory] = useState<string>('Bamboo & Cane');
-  const [material, setMaterial] = useState<string>('Natural Bamboo');
-  const [craftType, setCraftType] = useState<string>('Traditional Bamboo Weaving');
-  const [dimensions, setDimensions] = useState<string>('Not specified');
-  const [keywords, setKeywords] = useState<string[]>(['bamboo basket', 'eco friendly', 'handwoven', 'storage']);
-  const [tags, setTags] = useState<string[]>(['Bamboo Craft', 'Eco-Friendly', 'Handmade']);
+  const [category, setCategory] = useState<string>('Jewelry & Watches');
+  const [material, setMaterial] = useState<string>('Surgical 316L Stainless Steel & Rose Gold Ion Plating');
+  const [craftType, setCraftType] = useState<string>('Precision Horology & Hand-Assembled Metalwork');
+  const [dimensions, setDimensions] = useState<string>('Case: 38mm, Lug-to-Lug: 20cm');
+  const [keywords, setKeywords] = useState<string[]>(['rose gold watch', 'artisan wristwatch', 'minimalist timepiece', 'luxury jewelry watch']);
+  const [tags, setTags] = useState<string[]>(['Jewelry & Watches', 'Luxury Finish', 'Precision Quartz']);
   const [productHighlights, setProductHighlights] = useState<string[]>([
-    'Handmade by traditional artisans with generational skill',
-    'Crafted from natural seasoned bamboo'
+    'Solid 316L stainless steel casing with durable rose gold PVD vacuum ion plating',
+    'Scratch-resistant mineral crystal glass and water resistance up to 30 meters (3 ATM)',
+    'Precision Japanese quartz caliber providing pinpoint timekeeping accuracy'
   ]);
   const [keywordInput, setKeywordInput] = useState<string>('');
   const [tagInput, setTagInput] = useState<string>('');
@@ -126,23 +123,23 @@ export const AiProductStudio: React.FC = () => {
   const [enhancedImageDataUrl, setEnhancedImageDataUrl] = useState<string>('');
   const [isProcessingBackground, setIsProcessingBackground] = useState<boolean>(false);
   const [currentStage, setCurrentStage] = useState<ProcessingStage>(PROCESSING_STAGES[0]);
-  const [detectedStudioName, setDetectedStudioName] = useState<string>('Natural Bamboo & Cane Studio');
+  const [detectedStudioName, setDetectedStudioName] = useState<string>('Luxury Watch & Horology Studio');
   const [isolationSensitivity, setIsolationSensitivity] = useState<IsolationSensitivity>('deep-clean');
   const sliderContainerRef = useRef<HTMLDivElement>(null);
   const lastProcessedKeyRef = useRef<string>('');
   const isProcessingRef = useRef<boolean>(false);
 
   // STEP 5: Price Recommendation State
-  const [materialCost, setMaterialCost] = useState<number>(300);
-  const [laborCost, setLaborCost] = useState<number>(200);
-  const [otherCost, setOtherCost] = useState<number>(100);
-  const [timeRequiredHours, setTimeRequiredHours] = useState<number>(2.5);
-  const [desiredProfitMargin, setDesiredProfitMargin] = useState<number>(32);
+  const [materialCost, setMaterialCost] = useState<number>(850);
+  const [laborCost, setLaborCost] = useState<number>(1000);
+  const [otherCost, setOtherCost] = useState<number>(350);
+  const [timeRequiredHours, setTimeRequiredHours] = useState<number>(4.0);
+  const [desiredProfitMargin, setDesiredProfitMargin] = useState<number>(35);
   const [priceRecommendation, setPriceRecommendation] = useState<PriceCalculation>(() =>
-    calculatePriceRecommendation(300, 2.5, 140, 100)
+    calculatePriceRecommendation(850, 4.0, 250, 350)
   );
   const [selectedPriceTier, setSelectedPriceTier] = useState<'minimum' | 'recommended' | 'premium' | 'custom'>('recommended');
-  const [customFinalPrice, setCustomFinalPrice] = useState<number>(780);
+  const [customFinalPrice, setCustomFinalPrice] = useState<number>(2450);
 
   // STEP 7: Publishing State
   const [isPublished, setIsPublished] = useState<boolean>(false);
@@ -1019,9 +1016,50 @@ export const AiProductStudio: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 5 ACTION BUTTONS FOR BEFORE / AFTER */}
+                {/* EXACT 5 ACTION BUTTONS FOR BEFORE / AFTER */}
                 <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 bg-stone-100 rounded-2xl border border-stone-200">
                   <div className="flex flex-wrap items-center gap-2">
+                    {/* 1. Retake Photo */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentStep(1);
+                        startCamera();
+                        showToast('Camera Activated 📸', 'Retake your product photo with good lighting.', 'info');
+                      }}
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Retake Photo</span>
+                    </button>
+
+                    {/* 2. Upload Another */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        galleryInputRef.current?.click();
+                      }}
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-stone-600" />
+                      <span>Upload Another</span>
+                    </button>
+
+                    {/* 3. Change Background */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const styleSelector = document.getElementById('studio-environment-selector');
+                        styleSelector?.scrollIntoView({ behavior: 'smooth' });
+                        showToast('Studio Environments', 'Select your preferred studio setting below.', 'info');
+                      }}
+                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Palette className="w-3.5 h-3.5 text-purple-700" />
+                      <span>Change Background</span>
+                    </button>
+
+                    {/* 4. Regenerate */}
                     <button
                       type="button"
                       onClick={() =>
@@ -1040,52 +1078,9 @@ export const AiProductStudio: React.FC = () => {
                       <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
                       <span>Regenerate</span>
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBackgroundStyle('smart-match');
-                        executeBackgroundReplacement(
-                          originalImage,
-                          category,
-                          generatedDescription,
-                          'smart-match',
-                          aspectRatio,
-                          isolationSensitivity,
-                          true
-                        );
-                      }}
-                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
-                      <span>Reset</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const styleSelector = document.getElementById('studio-environment-selector');
-                        styleSelector?.scrollIntoView({ behavior: 'smooth' });
-                        showToast('Studio Styles', 'Choose a background from the options below.', 'info');
-                      }}
-                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Palette className="w-3.5 h-3.5 text-purple-700" />
-                      <span>Change Background</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSliderPosition(100);
-                        showToast('Original Preview', 'Showing raw unedited photo.', 'info');
-                      }}
-                      className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs border border-stone-300 transition-colors cursor-pointer"
-                    >
-                      Try Again
-                    </button>
                   </div>
 
+                  {/* 5. Use This Photo */}
                   <button
                     type="button"
                     onClick={() => {

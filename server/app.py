@@ -135,45 +135,146 @@ def seed_demo_data(cursor):
         now
     ))
 
-    # Demo Products for Artisan
+    # Demo B2B Buyer
+    buyer_id = "demo-buyer-1"
+    cursor.execute("""
+    INSERT INTO users (id, name, email, phone, password_hash, role, location, craft_type, avatar, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        buyer_id,
+        "Rajesh Mehta",
+        "buyer@demo.com",
+        "+91 98111 88990",
+        generate_password_hash("buyer123"),
+        "b2b_buyer",
+        "New Delhi, Delhi",
+        None,
+        "",
+        now
+    ))
+
+    # Demo Admin
+    admin_id = "demo-admin-1"
+    cursor.execute("""
+    INSERT INTO users (id, name, email, phone, password_hash, role, location, craft_type, avatar, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        admin_id,
+        "Vikramaditya Rao",
+        "admin@demo.com",
+        "+91 99000 11223",
+        generate_password_hash("admin123"),
+        "admin",
+        "Bengaluru, Karnataka",
+        None,
+        "",
+        now
+    ))
+
+    # Demo Products for Artisan (All 100% matched to authentic craft images)
     demo_products = [
         (
             "prod-demo-1",
             artisan_id,
-            "Handcrafted Kondapalli Dasavatara Set",
-            "Woodcraft",
-            "Authentic hand-carved Tella Poniki wood depicting the sacred ten incarnations, finished with vegetable dyes.",
+            "Handcrafted Kondapalli Wooden Toy Dancing Doll",
+            "Wood Crafts",
+            "Authentic hand-carved Tella Poniki wood bobble-head doll, painted with non-toxic vegetable enamel dyes.",
             "Tella Poniki Softwood, Natural Dyes",
-            1850.0,
-            8,
-            "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80",
-            "Generational craft passed down over 400 years by the Kondapalli artisan community in Andhra Pradesh.",
+            720.0,
+            15,
+            "./assets/products/kondapalli_toy.jpg",
+            "400-year-old GI-tagged heritage craft made by the Kondapalli artisan cluster in Andhra Pradesh.",
             now
         ),
         (
             "prod-demo-2",
             artisan_id,
-            "Traditional Bull Cart Toy with Moving Wheels",
-            "Woodcraft",
-            "Vintage folk toy painted in non-toxic traditional colors with movable parts for collectors.",
-            "Softwood & Organic Turmeric/Indigo Pigments",
-            750.0,
-            12,
-            "https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=600&auto=format&fit=crop&q=80",
-            "Inspired by the festive rural bullock carts of south Indian harvest celebrations.",
+            "Hand-Woven Organic Bamboo & Cane Storage Basket",
+            "Bamboo Crafts",
+            "Multi-purpose handwoven hexagonal weave bamboo storage basket crafted from mature river cane.",
+            "Natural Seasoned Bamboo & Wild Cane",
+            800.0,
+            25,
+            "./assets/products/bamboo_basket.jpg",
+            "Crafted sustainably using generational bamboo split weaving methods.",
             now
         ),
         (
             "prod-demo-3",
             artisan_id,
-            "Hand-Painted Dancing Village Couple",
-            "Home Decor",
-            "Exquisite figurine capturing the joyful rural folk dance of coastal Andhra Pradesh.",
-            "Carved Wood, Lacquer Gloss",
-            1200.0,
-            5,
-            "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80",
-            "Each figurine takes 3 days of delicate hand-painting with fine squirrel-hair brushes.",
+            "Classic Rose Gold Minimalist Artisan Watch",
+            "Jewelry & Watches",
+            "Hand-assembled analog wristwatch featuring an ultra-slim rose gold case, quartz movement, and pearl-white dial.",
+            "Rose Gold Plated Stainless Steel & Mineral Glass",
+            2450.0,
+            10,
+            "./assets/products/artisan_watch.jpg",
+            "Precision handcrafted horology combining timeless design with artisan finishing.",
+            now
+        ),
+        (
+            "prod-demo-4",
+            artisan_id,
+            "Authentic Zari Border Handloom Silk Saree",
+            "Handloom",
+            "Pure handloom silk saree with intricate golden zari border and traditional temple motifs.",
+            "100% Pure Mulberry Silk & Golden Zari",
+            2800.0,
+            12,
+            "./assets/products/silk_saree.jpg",
+            "Hand-spun and woven on traditional wooden pit looms over 2 weeks.",
+            now
+        ),
+        (
+            "prod-demo-5",
+            artisan_id,
+            "Pure Handwoven Kashmiri Pashmina Shawl with Sozni Border",
+            "Textiles",
+            "Featherweight Changthangi fine cashmere with delicate floral Sozni needle embroidery on the borders.",
+            "100% Changthangi Cashmere Wool & Silk Floss",
+            8900.0,
+            6,
+            "./assets/products/pashmina_shawl.jpg",
+            "Certified heirloom cashmere requiring over 4 weeks of hand spinning and fine needlework.",
+            now
+        ),
+        (
+            "prod-demo-6",
+            artisan_id,
+            "Mithila Madhubani Hand-Painted Tree of Life Folk Art",
+            "Paintings",
+            "Sacred Tree of Life folk artwork hand-painted on handmade parchment rag paper using organic botanical dyes.",
+            "Handmade Rag Paper & Natural Organic Dyes",
+            1400.0,
+            10,
+            "./assets/products/madhubani_painting.jpg",
+            "Traditional freehand brush and nib art passed down through generations of Mithila women.",
+            now
+        ),
+        (
+            "prod-demo-7",
+            artisan_id,
+            "Handcrafted Terracotta Clay Planter Pot",
+            "Pottery",
+            "Unglazed terracotta planter with hand-etched geometric tribal patterns, offering natural evaporative cooling.",
+            "Natural Alluvial River Clay",
+            520.0,
+            30,
+            "./assets/products/terracotta_pot.jpg",
+            "Formed on manual potter wheel and slow-baked in wood charcoal kilns.",
+            now
+        ),
+        (
+            "prod-demo-8",
+            artisan_id,
+            "Bastar Dhokra Hand-Cast Bell Metal Musician Figurine",
+            "Traditional Crafts",
+            "Ancient tribal brass musician figurine sculpted using the 4000-year-old lost-wax casting technique.",
+            "Lost-Wax Bell Metal Brass Alloy",
+            1650.0,
+            8,
+            "./assets/products/dokra_brass.jpg",
+            "Rustic textured tribal art celebrating traditional festive musicians.",
             now
         )
     ]
@@ -183,6 +284,7 @@ def seed_demo_data(cursor):
         INSERT INTO products (id, artisan_id, product_name, category, description, material, price, quantity, image, craft_story, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, prod)
+
 
 
 # Initialize DB on module load

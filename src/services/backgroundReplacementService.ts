@@ -216,6 +216,20 @@ export function determineSmartStudio(category: string, description: string): {
   }
 
   if (
+    text.includes('watch') ||
+    text.includes('wristwatch') ||
+    text.includes('timepiece') ||
+    text.includes('dial')
+  ) {
+    return {
+      studioName: 'Luxury Watch & Horology Studio',
+      surfaceType: 'marble',
+      wallTheme: 'Minimalist champagne slate cyclorama with subtle metallic sheen',
+      lightingTone: 'Precision 5600K dual rim lighting highlighting rose gold bevels'
+    };
+  }
+
+  if (
     text.includes('jewelry') ||
     text.includes('jewel') ||
     text.includes('necklace') ||

@@ -9,6 +9,8 @@ import {
   Sparkles,
   Palette,
   ShoppingBag,
+  Briefcase,
+  ShieldCheck,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -187,7 +189,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleQuickFill('artisan@demo.com', 'artisan123')}
-                className="p-2 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100/70 text-left transition-colors cursor-pointer group"
+                className="p-2.5 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100/70 text-left transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
                   <Palette className="w-3.5 h-3.5 text-amber-700" />
@@ -199,13 +201,37 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleQuickFill('customer@demo.com', 'customer123')}
-                className="p-2 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-left transition-colors cursor-pointer group"
+                className="p-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-left transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-1.5 text-stone-900 font-bold text-xs">
                   <ShoppingBag className="w-3.5 h-3.5 text-stone-700" />
                   <span>Customer Demo</span>
                 </div>
                 <div className="text-[10px] text-stone-500 mt-0.5 truncate">customer@demo.com</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickFill('buyer@demo.com', 'buyer123')}
+                className="p-2.5 rounded-xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100/70 text-left transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-1.5 text-blue-900 font-bold text-xs">
+                  <Briefcase className="w-3.5 h-3.5 text-blue-700" />
+                  <span>Buyer Demo</span>
+                </div>
+                <div className="text-[10px] text-stone-500 mt-0.5 truncate">buyer@demo.com</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickFill('admin@demo.com', 'admin123')}
+                className="p-2.5 rounded-xl border border-purple-200 bg-purple-50/60 hover:bg-purple-100/70 text-left transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-1.5 text-purple-900 font-bold text-xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-700" />
+                  <span>Admin Demo</span>
+                </div>
+                <div className="text-[10px] text-stone-500 mt-0.5 truncate">admin@demo.com</div>
               </button>
             </div>
           </div>

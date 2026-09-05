@@ -26,33 +26,38 @@ export interface AICatalogResult {
 
 export const CRAFT_PRESETS = [
   {
+    label: 'Artisan Rose Gold Watch',
+    image: './assets/products/artisan_watch.jpg',
+    voiceText: 'This is a handcrafted rose gold analog watch with a minimalist dial, scratch-resistant crystal, and adjustable stainless steel mesh strap. Assembled by skilled horology artisans.'
+  },
+  {
     label: 'Assam Bamboo Basket',
-    image: 'https://images.unsplash.com/photo-1590736969955-71cc94801759?w=600&auto=format&fit=crop&q=80',
+    image: './assets/products/bamboo_basket.jpg',
     voiceText: 'This is an authentic handmade Assam bamboo storage basket hand-woven by river artisans using seasoned golden bamboo and wild cane. Strong, lightweight, and completely eco-friendly for natural home storage.'
   },
   {
     label: 'Mithila Tree of Life Painting',
-    image: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80',
+    image: './assets/products/madhubani_painting.jpg',
     voiceText: 'Hand-painted traditional Madhubani Tree of Life folk artwork on handmade rag paper using organic dyes from turmeric and marigold flowers. Created using traditional Kachni line drawing techniques.'
   },
   {
     label: 'Kondapalli Dancing Toy',
-    image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80',
+    image: './assets/products/kondapalli_toy.jpg',
     voiceText: 'Classic Kondapalli dancing doll hand carved from light Poniki wood. Painted with non-toxic natural colors and vegetable enamel. It bobs and sways with a delicate counterweight mechanism.'
   },
   {
     label: 'Bankura Terracotta Figurine',
-    image: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
-    voiceText: 'Traditional Bankura terracotta decorative horse sculpted from river silt clay and open-kiln baked. Features stylized erect ears and symmetrical geometric markings.'
+    image: './assets/products/terracotta_pot.jpg',
+    voiceText: 'Traditional Bankura terracotta decorative planter sculpted from river silt clay and open-kiln baked. Features stylized erect ears and symmetrical geometric markings.'
   },
   {
     label: 'Pure Kashmir Pashmina Shawl',
-    image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80',
+    image: './assets/products/pashmina_shawl.jpg',
     voiceText: 'Pure Kashmiri pashmina cashmere shawl hand spun and woven on wooden looms with delicate sozni needle embroidery on the borders. Feather-light warmth and heirloom quality.'
   },
   {
     label: 'Bastar Dhokra Bell Metal Cast',
-    image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
+    image: './assets/products/dokra_brass.jpg',
     voiceText: 'Ancient tribal brass metal figurine cast using 4000 year old lost wax technique. Rustic textured tribal musician holding traditional drum, completely handmade.'
   }
 ];
@@ -68,6 +73,38 @@ export async function generateAICatalog(
   const text = (inputDescription || '').toLowerCase();
 
   // Pattern detection for domain-specific handicraft extraction
+  if (text.includes('watch') || text.includes('wristwatch') || text.includes('timepiece') || text.includes('dial') || text.includes('strap') || text.includes('rose gold')) {
+    return {
+      productName: 'Classic Rose Gold Minimalist Artisan Watch',
+      description:
+        'A masterfully crafted analog timepiece uniting heritage minimalist metallurgy with contemporary luxury. Features a polished rose gold stainless casing, scratch-resistant mineral crystal glass, an ultra-quiet Japanese quartz movement, and an artisan-stitched mesh strap.',
+      category: 'Jewelry & Watches',
+      material: 'Surgical 316L Stainless Steel, Rose Gold Ion Plating & Sapphire Crystal Glass',
+      craftType: 'Precision Horology & Hand-Assembled Metalwork',
+      estimatedSize: 'Case Diameter: 38 mm, Thickness: 7 mm, Lug-to-Lug: 20 cm',
+      keywords: ['rose gold watch', 'artisan wristwatch', 'minimalist timepiece', 'luxury jewelry watch', 'handcrafted dial', 'formal watch'],
+      tags: ['Luxury Finish', 'Water Resistant 3ATM', 'Precision Quartz', 'Artisan Assembled'],
+      productHighlights: [
+        'Solid 316L stainless steel casing with durable rose gold PVD vacuum ion plating',
+        'Scratch-resistant mineral crystal glass and water resistance up to 30 meters (3 ATM)',
+        'Precision Japanese quartz caliber providing pinpoint timekeeping accuracy',
+        'Smooth adjustable milanese mesh band with secure fold-over safety clasp'
+      ],
+      suggestedCostBreakdown: {
+        materialCost: 850,
+        labourHours: 4.0,
+        hourlyRate: 250,
+        otherCost: 350
+      },
+      translations: {
+        te: {
+          name: 'క్లాసిక్ రోజ్ గోల్డ్ మినిమలిస్ట్ ఆర్టిసాన్ వాచ్',
+          description: 'సొగసైన రోజ్ గోల్డ్ ఫినిషింగ్ మరియు అత్యున్నత నాణ్యతతో రూపొందించబడిన చేతి గడియారం. ప్రత్యేక సందర్భాలకు మరియు రోజువారీ వాడకానికి అనుకూలం.'
+        }
+      }
+    };
+  }
+
   if (text.includes('bamboo') || text.includes('cane') || text.includes('basket') || text.includes('weaving')) {
     return {
       productName: 'Handcrafted Organic Bamboo Storage & Serving Basket',

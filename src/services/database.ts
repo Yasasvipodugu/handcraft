@@ -49,9 +49,16 @@ class KalaDatabase {
 
   private init() {
     try {
-      if (!localStorage.getItem('kala_initialized_v2')) {
+      if (!localStorage.getItem('kala_initialized_v4')) {
         this.resetToDemoData();
         return;
+      }
+
+      // Auto-heal products table to guarantee 100% image-product consistency
+      const existingProds = this.getProducts();
+      const p1 = existingProds.find((p) => p.id === 'prod-1');
+      if (!p1 || p1.name.includes('Bamboo') || !p1.image.includes('artisan_watch')) {
+        this.setTable('products', INITIAL_PRODUCTS);
       }
       // Auto-heal seed users and strip any stock photos from all user accounts
       const users = this.getUsers();
@@ -114,7 +121,7 @@ class KalaDatabase {
       localStorage.setItem('kala_b2b_requirements', JSON.stringify(INITIAL_B2B_REQUIREMENTS));
       localStorage.setItem('kala_b2b_proposals', JSON.stringify(INITIAL_B2B_PROPOSALS));
       localStorage.setItem('kala_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
-      localStorage.setItem('kala_initialized_v2', 'true');
+      localStorage.setItem('kala_initialized_v4', 'true');
       this.notify('all', null);
     } catch (e) {
       console.error('Error resetting to demo data:', e);

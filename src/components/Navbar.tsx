@@ -20,23 +20,28 @@ import {
   Clock,
   Layers,
   Shield,
-  Package
+  Package,
+  Globe,
+  Check
 } from 'lucide-react';
+import { SUPPORTED_LANGUAGES } from '../locales/translations';
 
 export const Navbar: React.FC = () => {
   const { currentUser, logout } = useAuth();
   const { itemCount } = useCart();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
-  const { t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -46,6 +51,9 @@ export const Navbar: React.FC = () => {
       }
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setProfileMenuOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(event.target as Node)) {
+        setLangMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -109,7 +117,7 @@ export const Navbar: React.FC = () => {
                   : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/70'
               }`}
             >
-              <span>Home</span>
+              <span>{t.navHome || 'Home'}</span>
             </Link>
 
             {/* Unauthenticated: Home, Explore, About */}
@@ -124,7 +132,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <Compass className="w-4 h-4" />
-                  <span>Explore</span>
+                  <span>{t.navMarketplace || 'Explore'}</span>
                 </Link>
 
                 <Link
@@ -136,7 +144,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <BarChart3 className="w-4 h-4" />
-                  <span>About</span>
+                  <span>{t.navAbout || 'About'}</span>
                 </Link>
               </>
             )}
@@ -153,7 +161,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <Layers className="w-4 h-4" />
-                  <span>My Dashboard</span>
+                  <span>{t.navDashboard || 'My Dashboard'}</span>
                 </Link>
 
                 <Link
@@ -177,7 +185,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <Sparkles className="w-4 h-4 text-amber-600 animate-pulse" />
-                  <span>AI Studio</span>
+                  <span>{t.navStudio || 'AI Studio'}</span>
                 </Link>
               </>
             )}
@@ -194,7 +202,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <Compass className="w-4 h-4" />
-                  <span>Explore</span>
+                  <span>{t.navMarketplace || 'Explore'}</span>
                 </Link>
 
                 <Link
@@ -206,7 +214,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <Layers className="w-4 h-4" />
-                  <span>My Dashboard</span>
+                  <span>{t.navDashboard || 'My Dashboard'}</span>
                 </Link>
 
                 <Link
@@ -218,7 +226,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>My Orders</span>
+                  <span>{t.navOrders || 'My Orders'}</span>
                 </Link>
               </>
             )}
@@ -233,7 +241,7 @@ export const Navbar: React.FC = () => {
                 }`}
               >
                 <Briefcase className="w-4 h-4" />
-                <span>B2B Wholesale</span>
+                <span>{t.navB2B || 'B2B Wholesale'}</span>
               </Link>
             )}
 
@@ -243,19 +251,64 @@ export const Navbar: React.FC = () => {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200"
               >
                 <Shield className="w-4 h-4 text-purple-700" />
-                <span>Admin Console</span>
+                <span>{t.navAdmin || 'Admin Console'}</span>
               </Link>
             )}
           </nav>
 
-          {/* Right Action Icons: Notifications, Cart, Profile */}
+          {/* Right Action Icons: Language, Notifications, Cart, Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* 🌐 Visible Language Selector Dropdown (7 Languages - NO HINDI) */}
+            <div className="relative" ref={langRef}>
+              <button
+                type="button"
+                onClick={() => setLangMenuOpen(!langMenuOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-stone-300 hover:border-amber-600 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                title="Change Language"
+                aria-label="Language Selector"
+              >
+                <Globe className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
+                <span className="hidden sm:inline">
+                  {SUPPORTED_LANGUAGES.find((l) => l.code === language)?.label.split(' ')[0] || 'English'}
+                </span>
+                <span className="sm:hidden uppercase text-[11px] font-extrabold">{language}</span>
+                <ChevronDown className="w-3 h-3 text-stone-400" />
+              </button>
+
+              {langMenuOpen && (
+                <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-stone-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3.5 py-1.5 border-b border-stone-100 text-[10px] font-black uppercase tracking-wider text-stone-400">
+                    🌐 Select Language
+                  </div>
+                  {SUPPORTED_LANGUAGES.map((lang) => {
+                    const isSelected = language === lang.code;
+                    return (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => {
+                          setLanguage(lang.code);
+                          setLangMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-3.5 py-2 text-xs font-semibold flex items-center justify-between hover:bg-amber-50 transition-colors cursor-pointer ${
+                          isSelected ? 'bg-amber-100/80 text-amber-950 font-bold' : 'text-stone-700'
+                        }`}
+                      >
+                        <span>{lang.label}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-amber-800 stroke-[3]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Notification Dropdown */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-full transition-colors"
+                className="relative p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-full transition-colors cursor-pointer"
                 title="Notifications"
                 aria-label="Notifications"
               >
@@ -266,6 +319,7 @@ export const Navbar: React.FC = () => {
                   </span>
                 )}
               </button>
+
 
               {notificationsOpen && (
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-stone-200 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">

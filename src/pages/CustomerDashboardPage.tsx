@@ -128,12 +128,12 @@ export const CustomerDashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-stone-50/70 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
         
         {/* ===================================================================
             CUSTOMER SIDEBAR
            =================================================================== */}
-        <aside className="lg:col-span-1 bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-6 sticky top-24">
+        <aside className="lg:col-span-3 xl:col-span-3 bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-6 sticky top-24">
           <div className="flex items-center gap-3 pb-4 border-b border-stone-100">
             {currentUser.avatar ? (
               <img
@@ -206,7 +206,7 @@ export const CustomerDashboardPage: React.FC = () => {
         {/* ===================================================================
             MAIN CUSTOMER CONTENT AREA
            =================================================================== */}
-        <main className="lg:col-span-4 space-y-8">
+        <main className="lg:col-span-9 xl:col-span-9 space-y-8">
           
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-stone-900 via-stone-800 to-amber-900 rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -277,8 +277,8 @@ export const CustomerDashboardPage: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-                  {products.slice(0, 6).map((prod) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+                  {products.slice(0, 8).map((prod) => (
                     <ProductCard key={prod.id} product={prod} />
                   ))}
                 </div>
@@ -358,7 +358,7 @@ export const CustomerDashboardPage: React.FC = () => {
                   No products matched your search. Try changing your filters.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
                   {filteredProducts.map((prod) => (
                     <div
                       key={prod.id}
