@@ -129,30 +129,8 @@ export const AiProductStudio: React.FC = () => {
   const [detectedStudioName, setDetectedStudioName] = useState<string>('Luxury Watch & Horology Studio');
   const [isolationSensitivity, setIsolationSensitivity] = useState<IsolationSensitivity>('deep-clean');
   const sliderContainerRef = useRef<HTMLDivElement>(null);
-  const [sliderDimensions, setSliderDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const lastProcessedKeyRef = useRef<string>('');
   const isProcessingRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    const updateDims = () => {
-      if (sliderContainerRef.current) {
-        setSliderDimensions({
-          width: sliderContainerRef.current.clientWidth,
-          height: sliderContainerRef.current.clientHeight
-        });
-      }
-    };
-    updateDims();
-    const ro = new ResizeObserver(updateDims);
-    if (sliderContainerRef.current) {
-      ro.observe(sliderContainerRef.current);
-    }
-    window.addEventListener('resize', updateDims);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', updateDims);
-    };
-  }, [originalImage, cutoutDataUrl, enhancedImageDataUrl, activeStageMode]);
 
   // STEP 5: Price Recommendation State
   const [materialCost, setMaterialCost] = useState<number>(850);
@@ -1060,26 +1038,18 @@ export const AiProductStudio: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Layer 2: Original Uploaded Image (Clipped by slider position) */}
+                    {/* Layer 2: Original Uploaded Image (Clipped seamlessly by CSS clipPath) */}
                     <div
-                      className="absolute inset-y-0 left-0 overflow-hidden bg-stone-950 pointer-events-none select-none z-10"
-                      style={{ width: `${sliderPosition}%` }}
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10"
+                      style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
                     >
-                      <div
-                        className="relative flex items-center justify-center pointer-events-none select-none"
-                        style={{
-                          width: sliderDimensions.width ? `${sliderDimensions.width}px` : '100%',
-                          height: sliderDimensions.height ? `${sliderDimensions.height}px` : '100%'
-                        }}
-                      >
-                        <img
-                          src={originalImage}
-                          alt="Original Raw"
-                          className="w-full h-full object-contain filter brightness-95 pointer-events-none select-none"
-                        />
-                        <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-xs text-stone-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-md border border-stone-700 z-20">
-                          {translate('ORIGINAL PHOTO')}
-                        </div>
+                      <img
+                        src={originalImage}
+                        alt="Original Raw"
+                        className="w-full h-full object-contain filter brightness-95 pointer-events-none select-none"
+                      />
+                      <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-xs text-stone-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-md border border-stone-700 z-20">
+                        {translate('ORIGINAL PHOTO')}
                       </div>
                     </div>
 

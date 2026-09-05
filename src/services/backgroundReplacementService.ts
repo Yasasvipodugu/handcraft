@@ -489,8 +489,9 @@ export async function processBackgroundReplacement(
             let sumY = 0;
             let sumX = 0;
 
-            while (queue.length > 0) {
-              const curr = queue.shift()!;
+            let qHead = 0;
+            while (qHead < queue.length) {
+              const curr = queue[qHead++];
               compPixels.push(curr);
               const curX = curr % srcW;
               const curY = Math.floor(curr / srcW);
@@ -586,8 +587,9 @@ export async function processBackgroundReplacement(
         }
       }
 
-      while (floodQueue.length > 0) {
-        const curr = floodQueue.shift()!;
+      let fHead = 0;
+      while (fHead < floodQueue.length) {
+        const curr = floodQueue[fHead++];
         const curX = curr % srcW;
         const curY = Math.floor(curr / srcW);
 
