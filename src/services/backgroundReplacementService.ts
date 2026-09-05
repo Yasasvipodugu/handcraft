@@ -338,7 +338,7 @@ export async function processBackgroundReplacement(
   const drawX = (targetWidth - drawW) / 2;
   const drawY = Math.min((targetHeight - drawH) / 2 - targetHeight * 0.02, tableTopY - drawH * 0.94);
 
-  // 4. REAL FOREGROUND SEGMENTATION PASS
+  // 4. REAL FOREGROUND SEGMENTATION PASS (100% Native Resolution & 1:1 Pixel Preservation)
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = srcW;
   tempCanvas.height = srcH;
@@ -378,7 +378,7 @@ export async function processBackgroundReplacement(
       };
 
       const borderDepthY = Math.max(12, Math.floor(srcH * 0.12));
-      const borderDepthX = Math.max(12, Math.floor(srcW * 0.12));
+      const borderDepthX = Math.max(12, Math.floor(srcW * 0.10));
 
       // Top & Bottom strips
       for (let y = 0; y < borderDepthY; y++) {
@@ -405,140 +405,223 @@ export async function processBackgroundReplacement(
       const avgBgLum = 0.299 * avgBgR + 0.587 * avgBgG + 0.114 * avgBgB;
 
       // Cardboard/kraft surface detection: warm tan (R > G > B, moderate brightness, warm hue)
-      const isCardboardBg = avgBgR > avgBgG && avgBgG > avgBgB && avgBgR > 125 && avgBgB < 165 && (avgBgR - avgBgB) > 30;
+      const isCardboardBg = avgBgR > avgBgG && avgBgG > avgBgB && avgBgR > 115 && avgBgB < 175 && (avgBgR - avgBgB) > 22;
 
-      // 2. Identify Salient Foreground Core (Central Region Analysis)
-      let minFgX = srcW;
-      let maxFgX = 0;
-      let minFgY = srcH;
-      let maxFgY = 0;
-      let fgPixelCount = 0;
+      // 2. Classify background & identify core foreground candidates
+      const n = srcW * srcH;
+      const isBg = new Uint8Array(n);
+      const isCore = new Uint8Array(n);
 
-      const centerBoxLeft = Math.floor(srcW * 0.10);
-      const centerBoxRight = Math.floor(srcW * 0.90);
-      const centerBoxTop = Math.floor(srcH * 0.10);
-      const centerBoxBottom = Math.floor(srcH * 0.90);
-
-      for (let y = centerBoxTop; y < centerBoxBottom; y++) {
-        for (let x = centerBoxLeft; x < centerBoxRight; x++) {
-          const i = (y * srcW + x) * 4;
+      for (let y = 0; y < srcH; y++) {
+        for (let x = 0; x < srcW; x++) {
+          const idx = y * srcW + x;
+          const i = idx * 4;
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
           const lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-          let minBgDist = 999;
-          for (const bg of bgClusters) {
-            const d = Math.hypot(r - bg.r, g - bg.g, b - bg.b);
-            if (d < minBgDist) minBgDist = d;
-          }
+          // Pure white specular highlight detection (e.g. glossy reflections on watches, pottery, earbuds)
+          const isSpecularHighlight = r > 175 && g > 175 && b > 175 && Math.max(r, g, b) - Math.min(r, g, b) < 30;
 
-          let isCardboardPixel = false;
-          if (isCardboardBg) {
-            isCardboardPixel = (r > g && g > b && r > 115 && b < 160 && (r - b) > 22);
-          }
-
-          // Dark product check (e.g. black earbuds case, dark watch dial):
-          const isDarkProductPixel = avgBgLum > 95 && lum < 78;
-
-          // Distinct craft color / high contrast check
-          const isDistinctColor = minBgDist > 52 && !isCardboardPixel;
-
-          if (isDarkProductPixel || isDistinctColor) {
-            if (x < minFgX) minFgX = x;
-            if (x > maxFgX) maxFgX = x;
-            if (y < minFgY) minFgY = y;
-            if (y > maxFgY) maxFgY = y;
-            fgPixelCount++;
-          }
-        }
-      }
-
-      // Expand bounding box with safety margin
-      const padX = Math.max(16, Math.floor(srcW * 0.05));
-      const padY = Math.max(16, Math.floor(srcH * 0.05));
-      const boundLeft = Math.max(0, minFgX - padX);
-      const boundRight = Math.min(srcW - 1, maxFgX + padX);
-      const boundTop = Math.max(0, minFgY - padY);
-      const boundBottom = Math.min(srcH - 1, maxFgY + padY);
-
-      const distThreshold = sensitivity === 'deep-clean' ? 68 : sensitivity === 'delicate' ? 42 : 55;
-
-      // 3. Precise Alpha Channel Segmentation Pass
-      for (let y = 0; y < srcH; y++) {
-        for (let x = 0; x < srcW; x++) {
-          const i = (y * srcW + x) * 4;
-
-          // Out-of-bounds removal: anything outside the detected product boundary is guaranteed background
-          // Completely eliminates Flipkart logos, Kannada/Telugu text, pen marks, borders & sheet edges!
-          if (fgPixelCount > 150 && (x < boundLeft || x > boundRight || y < boundTop || y > boundBottom)) {
-            data[i + 3] = 0;
+          // Perimeter border forced background
+          if (y < borderDepthY * 0.7 || y > srcH - borderDepthY * 0.7 || x < borderDepthX * 0.6 || x > srcW - borderDepthX * 0.6) {
+            isBg[idx] = 1;
             continue;
           }
 
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-
           let minBgDist = 999;
           for (const bg of bgClusters) {
             const d = Math.hypot(r - bg.r, g - bg.g, b - bg.b);
             if (d < minBgDist) minBgDist = d;
           }
 
-          const max = Math.max(r, g, b);
-          const min = Math.min(r, g, b);
-          const sat = max === 0 ? 0 : (max - min) / max;
+          // Cardboard surface check (warm tan tone)
+          const isCardboardPixel = (r > 100) && (r >= g - 6) && (g >= b - 10) && (r - b > 14);
 
-          // White plate / pale wall detection
-          const isWhitePlateOrWall = (max > 165 && sat < 0.22) || (max > 140 && sat < 0.10);
+          // Printed shipping text on cardboard (blue/grey stamps, barcode lines, regional scripts)
+          const isPrintedShippingText = (b > 85) && (b > r - 20) && (g > 75) && (r < 190) && !isSpecularHighlight;
 
-          // Cardboard surface check
-          const isCardboardPixel = isCardboardBg && (r > g && g > b && r > 115 && b < 160 && (r - b) > 22);
+          // Plain white background paper or floor (when not part of a product)
+          const isWhiteBackdrop = lum > 230 && Math.max(r, g, b) - Math.min(r, g, b) < 25 && (y < srcH * 0.2 || y > srcH * 0.85);
 
-          // Blue ink text check (printed Flipkart packaging text has prominent blue ink)
-          const isBlueInkText = isCardboardBg && (b > r + 30 && b > 130);
-
-          if (minBgDist < distThreshold || isCardboardPixel || isWhitePlateOrWall || isBlueInkText) {
-            const isDarkProductCore = avgBgLum > 95 && lum < 65;
-            if (!isDarkProductCore) {
-              data[i + 3] = 0;
+          if ((isCardboardBg && isCardboardPixel) || isPrintedShippingText || isWhiteBackdrop || minBgDist < 36) {
+            isBg[idx] = 1;
+          } else {
+            // Core product candidate (inside central region)
+            const inCenter = x >= srcW * 0.08 && x <= srcW * 0.92 && y >= srcH * 0.12 && y <= srcH * 0.88;
+            if (inCenter && (lum < 78 || minBgDist > 52)) {
+              isCore[idx] = 1;
             }
           }
         }
       }
 
-      // 4. Island & Noise Cleanup Pass: Eliminate isolated text bits & lonely pixels
-      for (let y = 1; y < srcH - 1; y++) {
-        for (let x = 1; x < srcW - 1; x++) {
-          const i = (y * srcW + x) * 4;
-          if (data[i + 3] > 0) {
-            let neighborFgCount = 0;
-            if (data[((y - 1) * srcW + x) * 4 + 3] > 0) neighborFgCount++;
-            if (data[((y + 1) * srcW + x) * 4 + 3] > 0) neighborFgCount++;
-            if (data[(y * srcW + (x - 1)) * 4 + 3] > 0) neighborFgCount++;
-            if (data[(y * srcW + (x + 1)) * 4 + 3] > 0) neighborFgCount++;
+      // 3. Find connected component of isCore closest to center (srcW / 2, srcH / 2)
+      const cx = Math.floor(srcW / 2);
+      const cy = Math.floor(srcH / 2);
+      const visited = new Uint8Array(n);
+      const coreMask = new Uint8Array(n);
 
-            if (neighborFgCount < 2) {
-              data[i + 3] = 0;
+      let bestScore = -1;
+      const queue: number[] = [];
+
+      // Scan for components
+      for (let y = Math.floor(srcH * 0.15); y < Math.floor(srcH * 0.85); y += 2) {
+        for (let x = Math.floor(srcW * 0.10); x < Math.floor(srcW * 0.90); x += 2) {
+          const startIdx = y * srcW + x;
+          if (isCore[startIdx] && !visited[startIdx]) {
+            let compSize = 0;
+            let sumX = 0;
+            let sumY = 0;
+            const compPixels: number[] = [];
+
+            queue.push(startIdx);
+            visited[startIdx] = 1;
+
+            while (queue.length > 0) {
+              const curr = queue.shift()!;
+              compPixels.push(curr);
+              compSize++;
+              const curX = curr % srcW;
+              const curY = Math.floor(curr / srcW);
+              sumX += curX;
+              sumY += curY;
+
+              const neighbors = [
+                curX > 0 ? curr - 1 : -1,
+                curX < srcW - 1 ? curr + 1 : -1,
+                curY > 0 ? curr - srcW : -1,
+                curY < srcH - 1 ? curr + srcW : -1
+              ];
+              for (const nbr of neighbors) {
+                if (nbr >= 0 && !visited[nbr] && isCore[nbr]) {
+                  visited[nbr] = 1;
+                  queue.push(nbr);
+                }
+              }
+            }
+
+            if (compSize > 200) {
+              const meanX = sumX / compSize;
+              const meanY = sumY / compSize;
+              const distToCenter = Math.hypot(meanX - cx, meanY - cy);
+              const score = compSize / (distToCenter + 10);
+              if (score > bestScore) {
+                bestScore = score;
+                coreMask.fill(0);
+                for (const p of compPixels) {
+                  coreMask[p] = 1;
+                }
+              }
             }
           }
         }
       }
 
-      // 5. Feathered Edge Antialiasing Pass for smooth studio integration
+      // 4. Morphological Hole-Filling & Specular Highlight Preservation:
+      // Flood fill from the 4 outer image borders. Any non-core pixel reachable from the edge is outer background.
+      // Pixels that CANNOT be reached from the borders are internal holes (specular highlights, logos, reflections).
+      const outerBg = new Uint8Array(n);
+      const floodQueue: number[] = [];
+
+      // Enqueue border pixels that are not part of coreMask
+      for (let x = 0; x < srcW; x++) {
+        const topIdx = x;
+        const bottomIdx = (srcH - 1) * srcW + x;
+        if (!coreMask[topIdx] && !outerBg[topIdx]) {
+          outerBg[topIdx] = 1;
+          floodQueue.push(topIdx);
+        }
+        if (!coreMask[bottomIdx] && !outerBg[bottomIdx]) {
+          outerBg[bottomIdx] = 1;
+          floodQueue.push(bottomIdx);
+        }
+      }
+      for (let y = 0; y < srcH; y++) {
+        const leftIdx = y * srcW;
+        const rightIdx = y * srcW + (srcW - 1);
+        if (!coreMask[leftIdx] && !outerBg[leftIdx]) {
+          outerBg[leftIdx] = 1;
+          floodQueue.push(leftIdx);
+        }
+        if (!coreMask[rightIdx] && !outerBg[rightIdx]) {
+          outerBg[rightIdx] = 1;
+          floodQueue.push(rightIdx);
+        }
+      }
+
+      while (floodQueue.length > 0) {
+        const curr = floodQueue.shift()!;
+        const curX = curr % srcW;
+        const curY = Math.floor(curr / srcW);
+
+        const neighbors = [
+          curX > 0 ? curr - 1 : -1,
+          curX < srcW - 1 ? curr + 1 : -1,
+          curY > 0 ? curr - srcW : -1,
+          curY < srcH - 1 ? curr + srcW : -1
+        ];
+
+        for (const nbr of neighbors) {
+          if (nbr >= 0 && !outerBg[nbr] && !coreMask[nbr]) {
+            outerBg[nbr] = 1;
+            floodQueue.push(nbr);
+          }
+        }
+      }
+
+      // 5. Build clean mask: enclosed pixels are product; filter out any residual background
+      const mask = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        if (!outerBg[i]) {
+          const r = data[i * 4];
+          const g = data[i * 4 + 1];
+          const b = data[i * 4 + 2];
+          const isSpecular = r > 175 && g > 175 && b > 175 && Math.max(r, g, b) - Math.min(r, g, b) < 30;
+          const isCardboardPixel = (r > 100) && (r >= g - 6) && (g >= b - 10) && (r - b > 14);
+          const isPrintedText = (b > 85) && (b > r - 20) && (g > 75) && (r < 190) && !isSpecular;
+
+          if (isSpecular || (!isCardboardPixel && !isPrintedText)) {
+            mask[i] = 1;
+          }
+        }
+      }
+
+      // 6. Apply mask with 100% pixel preservation & antialiased edges
+      let totalMaskPixels = 0;
+      for (let i = 0; i < n; i++) {
+        if (mask[i]) totalMaskPixels++;
+      }
+
+      for (let y = 0; y < srcH; y++) {
+        for (let x = 0; x < srcW; x++) {
+          const idx = y * srcW + x;
+          const i = idx * 4;
+
+          if (totalMaskPixels > 200 && mask[idx]) {
+            // Keep 100% original RGB values untouched for crystal clarity!
+            data[i + 3] = 255;
+          } else {
+            data[i + 3] = 0;
+          }
+        }
+      }
+
+      // 7. Sub-pixel feathered antialiasing along border (1px feather)
       for (let y = 1; y < srcH - 1; y++) {
         for (let x = 1; x < srcW - 1; x++) {
-          const i = (y * srcW + x) * 4;
-          if (data[i + 3] > 0) {
-            const topA = data[((y - 1) * srcW + x) * 4 + 3];
-            const botA = data[((y + 1) * srcW + x) * 4 + 3];
-            const leftA = data[(y * srcW + (x - 1)) * 4 + 3];
-            const rightA = data[(y * srcW + (x + 1)) * 4 + 3];
+          const idx = y * srcW + x;
+          const i = idx * 4;
+          if (data[i + 3] === 255) {
+            const hasTransparentNeighbor =
+              data[(idx - 1) * 4 + 3] === 0 ||
+              data[(idx + 1) * 4 + 3] === 0 ||
+              data[(idx - srcW) * 4 + 3] === 0 ||
+              data[(idx + srcW) * 4 + 3] === 0;
 
-            if (topA === 0 || botA === 0 || leftA === 0 || rightA === 0) {
-              data[i + 3] = Math.min(data[i + 3], 195);
+            if (hasTransparentNeighbor) {
+              data[i + 3] = 210;
             }
           }
         }

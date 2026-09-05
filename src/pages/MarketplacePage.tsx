@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { db } from '../services/database';
 import { Product } from '../types';
 import { ProductCard } from '../components/ProductCard';
+import { useLanguage } from '../context/LanguageContext';
 import { parseSmartSearchQuery, filterProductsByNlp } from '../services/nlpSearchService';
 import {
   Search,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export const MarketplacePage: React.FC = () => {
+  const { translate, t } = useLanguage();
   const [products, setProducts] = useState<Product[]>(() => db.getProducts());
 
   // Listen to product changes (e.g. freshly published products)
@@ -184,14 +186,14 @@ export const MarketplacePage: React.FC = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-extrabold uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-              Direct From Rural Artisans
+              {translate('Direct Artisan Support')}
             </span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-extrabold text-stone-900 tracking-tight">
-            Explore Indian Crafts
+            {translate('Browse All Handicrafts')}
           </h1>
           <p className="text-xs sm:text-sm text-stone-500 max-w-2xl leading-relaxed">
-            Discover GI-certified authentic treasures hand-made across 28 states. Fair trade certified with 100% transparent direct payments.
+            {translate('Showing real products stored in the database. Filter by category, location, or keyword.')}
           </p>
         </div>
 
@@ -203,7 +205,7 @@ export const MarketplacePage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='AI Smart Search: Try "I want an eco-friendly handmade gift under ₹1000"'
+              placeholder={translate('Search crafts or artisans...')}
               className="w-full pl-12 pr-10 py-3.5 rounded-2xl border border-stone-300 focus:border-amber-700 focus:ring-2 focus:ring-amber-600/20 text-xs sm:text-sm font-medium bg-stone-50/50"
             />
             {searchQuery && (
@@ -265,21 +267,21 @@ export const MarketplacePage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <span className="font-bold text-sm text-stone-900 flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-amber-700" />
-                <span>Filter Indian Crafts</span>
+                <span>{translate('Filter Indian Crafts')}</span>
               </span>
               <button
                 onClick={handleResetFilters}
                 className="text-xs text-amber-800 hover:text-amber-900 font-medium flex items-center gap-1"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>Reset</span>
+                <span>{translate('Reset')}</span>
               </button>
             </div>
 
             {/* Category Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-stone-800 uppercase tracking-wide block">
-                Craft Category
+                {translate('Craft Category')}
               </label>
               <div className="space-y-1 max-h-44 overflow-y-auto pr-1">
                 {categories.map((cat) => (
@@ -292,7 +294,7 @@ export const MarketplacePage: React.FC = () => {
                         : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'
                     }`}
                   >
-                    {cat}
+                    {translate(cat)}
                   </button>
                 ))}
               </div>
@@ -301,7 +303,7 @@ export const MarketplacePage: React.FC = () => {
             {/* State Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-stone-800 uppercase tracking-wide block">
-                Origin State
+                {translate('Origin State')}
               </label>
               <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
                 {states.map((st) => (
@@ -314,7 +316,7 @@ export const MarketplacePage: React.FC = () => {
                         : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'
                     }`}
                   >
-                    {st}
+                    {translate(st)}
                   </button>
                 ))}
               </div>
@@ -323,7 +325,7 @@ export const MarketplacePage: React.FC = () => {
             {/* Price Filter Slider */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold text-stone-800">
-                <span>Maximum Price</span>
+                <span>{translate('Maximum Price')}</span>
                 <span className="text-amber-800">₹{maxPrice.toLocaleString('en-IN')}</span>
               </div>
               <input
@@ -344,7 +346,7 @@ export const MarketplacePage: React.FC = () => {
             {/* Material Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-stone-800 uppercase tracking-wide block">
-                Primary Material
+                {translate('Primary Material')}
               </label>
               <select
                 value={selectedMaterial}
@@ -353,7 +355,7 @@ export const MarketplacePage: React.FC = () => {
               >
                 {materials.map((m) => (
                   <option key={m} value={m}>
-                    {m}
+                    {translate(m)}
                   </option>
                 ))}
               </select>
@@ -362,7 +364,7 @@ export const MarketplacePage: React.FC = () => {
             {/* Craft Technique */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-stone-800 uppercase tracking-wide block">
-                Craft Technique
+                {translate('Craft Technique')}
               </label>
               <select
                 value={selectedCraft}
@@ -371,7 +373,7 @@ export const MarketplacePage: React.FC = () => {
               >
                 {craftTypes.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {translate(c)}
                   </option>
                 ))}
               </select>
@@ -380,7 +382,7 @@ export const MarketplacePage: React.FC = () => {
             {/* Minimum Rating */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-stone-800 uppercase tracking-wide block">
-                Minimum Rating
+                {translate('Minimum Rating')}
               </label>
               <div className="grid grid-cols-3 gap-1.5 text-xs font-medium">
                 {[0, 4.5, 4.8].map((rt) => (
@@ -393,7 +395,7 @@ export const MarketplacePage: React.FC = () => {
                         : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
                     }`}
                   >
-                    {rt === 0 ? 'All' : `${rt}★+`}
+                    {rt === 0 ? translate('All Crafts') : `${rt}★+`}
                   </button>
                 ))}
               </div>
@@ -410,26 +412,26 @@ export const MarketplacePage: React.FC = () => {
                   className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 text-xs font-semibold text-stone-800 border border-stone-200"
                 >
                   <Filter className="w-3.5 h-3.5" />
-                  <span>Filters</span>
+                  <span>{translate('Filters')}</span>
                 </button>
                 <span className="text-xs font-semibold text-stone-700">
-                  Showing <strong className="text-stone-900 font-extrabold">{filteredProducts.length}</strong> authentic handcrafted items
+                  {translate('Found')} <strong className="text-stone-900 font-extrabold">{filteredProducts.length}</strong> {translate('handcrafted items:')}
                 </span>
               </div>
 
               {/* Sort By Dropdown */}
               <div className="flex items-center gap-2 text-xs font-medium">
-                <span className="text-stone-500">Sort by:</span>
+                <span className="text-stone-500">{translate('Sort By:')}</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-stone-50 rounded-xl border border-stone-300 px-3 py-1.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-amber-700 cursor-pointer"
                 >
-                  <option value="featured">Recommended</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="rating">Highest Rated</option>
-                  <option value="newest">Recently Published</option>
+                  <option value="featured">{translate('Featured')}</option>
+                  <option value="price-low">{translate('Price: Low to High')}</option>
+                  <option value="price-high">{translate('Price: High to Low')}</option>
+                  <option value="rating">{translate('Highest Rated')}</option>
+                  <option value="newest">{translate('Newest')}</option>
                 </select>
               </div>
             </div>

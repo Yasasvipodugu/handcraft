@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Star, CheckCircle, Heart, ShoppingBag, Eye, MapPin } from 'lucide-react';
 
 interface ProductCardProps {
@@ -12,6 +13,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
   const { showToast } = useNotifications();
+  const { translate } = useLanguage();
   const navigate = useNavigate();
   const [isSaved, setIsSaved] = useState(false);
 
@@ -60,16 +62,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Category Pill & Cost Range Badge */}
         <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
           <span className="bg-stone-900/80 backdrop-blur-xs text-stone-100 text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-            {product.category}
+            {translate(product.category)}
           </span>
           <span className="bg-amber-100/90 text-amber-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-300 backdrop-blur-xs shadow-xs">
             {product.publishedPrice < 1000
-              ? 'Under ₹1K'
+              ? translate('Under ₹1,000')
               : product.publishedPrice <= 2500
-              ? '₹1K – ₹2.5K'
+              ? translate('₹1,000 – ₹2,500')
               : product.publishedPrice <= 5000
-              ? '₹2.5K – ₹5K'
-              : 'Above ₹5K'}
+              ? translate('₹2,500 – ₹5,000')
+              : translate('Above ₹5,000')}
           </span>
         </div>
       </div>
@@ -90,7 +92,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   title="Verified Master Artisan"
                 >
                   <CheckCircle className="w-2.5 h-2.5 fill-emerald-600 text-white" />
-                  <span>✓ VERIFIED</span>
+                  <span>{translate('✓ VERIFIED ARTISAN')}</span>
                 </span>
               )}
             </Link>
@@ -104,7 +106,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Product Title */}
           <Link to={`/marketplace/product/${product.id}`} className="block group-hover:text-amber-800">
             <h3 className="font-bold text-sm text-stone-900 line-clamp-2 leading-snug">
-              {product.name}
+              {translate(product.name)}
             </h3>
           </Link>
 
@@ -122,13 +124,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="mt-4 pt-3 border-t border-stone-100 flex flex-col gap-2.5">
           <div className="flex items-baseline justify-between">
             <div>
-              <span className="text-xs text-stone-400 font-medium">Fair Price:</span>
+              <span className="text-xs text-stone-400 font-medium">{translate('Fair Price')}:</span>
               <div className="text-lg font-extrabold text-stone-900 tracking-tight">
                 ₹{product.publishedPrice.toLocaleString('en-IN')}
               </div>
             </div>
             <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-              100% Direct to Artisan
+              {translate('100% to Artisans')}
             </span>
           </div>
 
@@ -136,18 +138,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => navigate(`/marketplace/product/${product.id}`)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors cursor-pointer"
             >
               <Eye className="w-3.5 h-3.5" />
-              <span>VIEW</span>
+              <span>{translate('View Details')}</span>
             </button>
 
             <button
               onClick={handleAddToCart}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-amber-700 hover:bg-amber-800 transition-all shadow-xs active:scale-95"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-amber-700 hover:bg-amber-800 transition-all shadow-xs active:scale-95 cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>ADD TO CART</span>
+              <span>{translate('Add to Cart')}</span>
             </button>
           </div>
         </div>

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import { Sparkles, Heart, ShieldCheck, Award, MapPin } from 'lucide-react';
 
 export const Footer: React.FC = () => {
+  const { translate, t } = useLanguage();
   return (
     <footer className="bg-stone-900 text-stone-300 border-t border-stone-800 pt-14 pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,36 +21,36 @@ export const Footer: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-stone-400 leading-relaxed">
-              Empowering artisans. Preserving traditions. Connecting markets. AI-driven smart cataloging, authentic photo enhancement, fair price recommendations, and direct market linkage.
+              {translate('footerTagline') || 'Empowering artisans. Preserving traditions. Connecting markets.'}
             </p>
             <div className="inline-flex items-center gap-1.5 text-[11px] text-amber-400 bg-amber-950/70 px-3 py-1 rounded-full border border-amber-800/80">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Direct Artisan Market Linkage Platform</span>
+              <span>{translate('Direct Artisan Support')}</span>
             </div>
           </div>
 
           {/* Quick Platform Links */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Platform</h4>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">{translate('Platform') || 'Platform'}</h4>
             <ul className="space-y-2.5 text-xs text-stone-400">
               <li>
-                <Link to="/marketplace" className="hover:text-amber-400 transition-colors">Explore Crafts</Link>
+                <Link to="/marketplace" className="hover:text-amber-400 transition-colors">{translate('Browse All Handicrafts')}</Link>
               </li>
               <li>
-                <Link to="/artisan/studio" className="hover:text-amber-400 transition-colors">AI Product Studio</Link>
+                <Link to="/artisan/studio" className="hover:text-amber-400 transition-colors">{translate('AI Product Studio')}</Link>
               </li>
               <li>
-                <Link to="/b2b" className="hover:text-amber-400 transition-colors">Business Marketplace</Link>
+                <Link to="/b2b" className="hover:text-amber-400 transition-colors">{translate('b2bMarketplace') || 'Business Marketplace'}</Link>
               </li>
               <li>
-                <Link to="/impact" className="hover:text-amber-400 transition-colors">Impact Metrics</Link>
+                <Link to="/customer/dashboard" className="hover:text-amber-400 transition-colors">{translate('Customer Dashboard')}</Link>
               </li>
               <li>
-                <Link to="/cart" className="hover:text-amber-400 transition-colors">Shopping Cart</Link>
+                <Link to="/cart" className="hover:text-amber-400 transition-colors">{translate('cart') || 'Shopping Cart'}</Link>
               </li>
               <li>
                 <Link to="/admin" className="hover:text-amber-400 text-stone-300 font-semibold transition-colors flex items-center gap-1">
-                  <span>Admin Console</span>
+                  <span>{translate('navAdmin') || 'Admin Console'}</span>
                 </Link>
               </li>
             </ul>

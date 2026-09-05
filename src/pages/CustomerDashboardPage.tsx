@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useLanguage } from '../context/LanguageContext';
 import { db } from '../services/database';
 import { Product, Order, Artisan } from '../types';
 import { ProductCard } from '../components/ProductCard';
@@ -33,6 +34,7 @@ import {
 export const CustomerDashboardPage: React.FC = () => {
   const { currentUser, logout } = useAuth();
   const { showToast } = useNotifications();
+  const { language, t, translate } = useLanguage();
   const navigate = useNavigate();
 
   // Protected Route Check
@@ -242,13 +244,13 @@ export const CustomerDashboardPage: React.FC = () => {
           <div className="bg-gradient-to-r from-stone-900 via-stone-800 to-amber-900 rounded-3xl p-6 sm:p-8 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-1.5">
               <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                KalaConnect Member
+                {translate('Direct Artisan Support')}
               </span>
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-                Welcome, {currentUser.name}!
+                {currentUser.name} — {translate('Customer Dashboard')}
               </h1>
               <p className="text-xs sm:text-sm text-stone-300 max-w-lg">
-                Direct market connection to authentic Indian artisans. Discover GI-tagged crafts, wooden toys, handlooms, and folk art.
+                {translate('Empowering artisans with AI, digital tools and better market access.')}
               </p>
             </div>
 
@@ -257,7 +259,7 @@ export const CustomerDashboardPage: React.FC = () => {
               className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer flex-shrink-0"
             >
               <Compass className="w-4 h-4 text-amber-950" />
-              <span>Browse All Handicrafts</span>
+              <span>{translate('Browse All Handicrafts')}</span>
             </button>
           </div>
 
@@ -268,27 +270,27 @@ export const CustomerDashboardPage: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
                   <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">
-                    Available Crafts
+                    {translate('Available Crafts')}
                   </span>
                   <p className="text-2xl font-black text-stone-900 mt-1">{products.length}</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
                   <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wide">
-                    Artisan Makers
+                    {translate('Artisan Makers')}
                   </span>
                   <p className="text-2xl font-black text-amber-900 mt-1">{artisans.length}</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
                   <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wide">
-                    My Orders
+                    {translate('My Orders')}
                   </span>
                   <p className="text-2xl font-black text-stone-900 mt-1">{orders.length}</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
                   <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">
-                    Direct Impact
+                    {translate('Direct Impact')}
                   </span>
-                  <p className="text-sm font-bold text-emerald-800 mt-2">100% to Artisans</p>
+                  <p className="text-sm font-bold text-emerald-800 mt-2">{translate('100% to Artisans')}</p>
                 </div>
               </div>
 
@@ -296,14 +298,14 @@ export const CustomerDashboardPage: React.FC = () => {
               <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-5">
                 <div className="flex items-center justify-between border-b border-stone-100 pb-3">
                   <div>
-                    <h3 className="font-bold text-base text-stone-900">Featured Handicrafts</h3>
-                    <p className="text-xs text-stone-500">Curated authentic creations from verified artisans</p>
+                    <h3 className="font-bold text-base text-stone-900">{translate('Featured Handicrafts')}</h3>
+                    <p className="text-xs text-stone-500">{translate('Curated authentic creations from verified artisans')}</p>
                   </div>
                   <button
                     onClick={() => setActiveTab('browse')}
                     className="text-xs font-bold text-amber-800 hover:text-amber-900"
                   >
-                    View Catalog ({products.length}) →
+                    {translate('View Catalog')} ({products.length}) →
                   </button>
                 </div>
 
@@ -318,10 +320,10 @@ export const CustomerDashboardPage: React.FC = () => {
               <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-stone-100 pb-3">
                   <div>
-                    <h3 className="font-bold text-base text-stone-900">Shop by Cost Range</h3>
-                    <p className="text-xs text-stone-500">Discover authentic crafts suited to your budget and gifting needs</p>
+                    <h3 className="font-bold text-base text-stone-900">{translate('Shop by Cost Range')}</h3>
+                    <p className="text-xs text-stone-500">{translate('Discover authentic crafts suited to your budget and gifting needs')}</p>
                   </div>
-                  <span className="text-xs font-bold text-stone-400">4 Price Tiers</span>
+                  <span className="text-xs font-bold text-stone-400">{translate('4 Price Tiers')}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -378,17 +380,17 @@ export const CustomerDashboardPage: React.FC = () => {
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${tier.tagColor}`}>
-                            {tier.badge}
+                            {translate(tier.badge)}
                           </span>
-                          <span className="text-xs font-black opacity-75">{tier.count} Items</span>
+                          <span className="text-xs font-black opacity-75">{tier.count} {translate('Items')}</span>
                         </div>
-                        <h4 className="text-base font-black tracking-tight pt-1">{tier.title}</h4>
-                        <p className="text-[11px] font-bold opacity-85">{tier.subtitle}</p>
+                        <h4 className="text-base font-black tracking-tight pt-1">{translate(tier.title)}</h4>
+                        <p className="text-[11px] font-bold opacity-85">{translate(tier.subtitle)}</p>
                         <p className="text-[11px] opacity-70 line-clamp-2 pt-1">{tier.desc}</p>
                       </div>
 
                       <div className="pt-3 flex items-center gap-1 text-xs font-bold text-amber-800">
-                        <span>Browse Items</span>
+                        <span>{translate('Browse Items')}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </div>
                     </button>
@@ -402,9 +404,9 @@ export const CustomerDashboardPage: React.FC = () => {
           {activeTab === 'browse' && (
             <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-6">
               <div className="border-b border-stone-100 pb-4">
-                <h3 className="font-black text-lg text-stone-900">Browse Artisan Handicrafts</h3>
+                <h3 className="font-black text-lg text-stone-900">{translate('Browse Artisan Handicrafts')}</h3>
                 <p className="text-xs text-stone-500">
-                  Showing real products stored in the database. Filter by category, location, or keyword.
+                  {translate('Showing real products stored in the database. Filter by category, location, or keyword.')}
                 </p>
               </div>
 
@@ -415,7 +417,7 @@ export const CustomerDashboardPage: React.FC = () => {
                   <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
                   <input
                     type="text"
-                    placeholder="Search crafts or artisans..."
+                    placeholder={translate('Search crafts or artisans...')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-700/20"
@@ -429,7 +431,7 @@ export const CustomerDashboardPage: React.FC = () => {
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     className="w-full py-2 px-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-700/20 font-medium"
                   >
-                    <option value="all">All Categories</option>
+                    <option value="all">{translate('All Categories')}</option>
                     {categories
                       .filter((c) => c !== 'all')
                       .map((cat) => (
@@ -447,7 +449,7 @@ export const CustomerDashboardPage: React.FC = () => {
                     onChange={(e) => setSelectedLocation(e.target.value)}
                     className="w-full py-2 px-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-700/20 font-medium"
                   >
-                    <option value="all">All Locations</option>
+                    <option value="all">{translate('All Locations')}</option>
                     {locations
                       .filter((l) => l !== 'all')
                       .map((loc) => (
@@ -465,24 +467,24 @@ export const CustomerDashboardPage: React.FC = () => {
                     onChange={(e) => setSelectedPriceRange(e.target.value)}
                     className="w-full py-2 px-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-700/20 font-medium text-amber-950 font-bold"
                   >
-                    <option value="all">All Cost Ranges ({priceRangeCounts.all})</option>
-                    <option value="under-1000">Under ₹1,000 ({priceRangeCounts.under1000})</option>
-                    <option value="1000-2500">₹1,000 – ₹2,500 ({priceRangeCounts.range1000to2500})</option>
-                    <option value="2500-5000">₹2,500 – ₹5,000 ({priceRangeCounts.range2500to5000})</option>
-                    <option value="above-5000">Above ₹5,000 ({priceRangeCounts.above5000})</option>
+                    <option value="all">{translate('All Cost Ranges')} ({priceRangeCounts.all})</option>
+                    <option value="under-1000">{translate('Under ₹1,000')} ({priceRangeCounts.under1000})</option>
+                    <option value="1000-2500">{translate('₹1,000 – ₹2,500')} ({priceRangeCounts.range1000to2500})</option>
+                    <option value="2500-5000">{translate('₹2,500 – ₹5,000')} ({priceRangeCounts.range2500to5000})</option>
+                    <option value="above-5000">{translate('Above ₹5,000')} ({priceRangeCounts.above5000})</option>
                   </select>
                 </div>
               </div>
 
               {/* Interactive Cost Range Quick-Filter Pills */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none text-xs">
-                <span className="font-bold text-stone-500 text-[11px] whitespace-nowrap">Cost Range:</span>
+                <span className="font-bold text-stone-500 text-[11px] whitespace-nowrap">{translate('Cost Range:')}</span>
                 {[
-                  { id: 'all', label: 'All Crafts', count: priceRangeCounts.all },
-                  { id: 'under-1000', label: 'Under ₹1,000', count: priceRangeCounts.under1000 },
-                  { id: '1000-2500', label: '₹1,000 – ₹2,500', count: priceRangeCounts.range1000to2500 },
-                  { id: '2500-5000', label: '₹2,500 – ₹5,000', count: priceRangeCounts.range2500to5000 },
-                  { id: 'above-5000', label: 'Above ₹5,000', count: priceRangeCounts.above5000 }
+                  { id: 'all', label: translate('All Crafts'), count: priceRangeCounts.all },
+                  { id: 'under-1000', label: translate('Under ₹1,000'), count: priceRangeCounts.under1000 },
+                  { id: '1000-2500', label: translate('₹1,000 – ₹2,500'), count: priceRangeCounts.range1000to2500 },
+                  { id: '2500-5000', label: translate('₹2,500 – ₹5,000'), count: priceRangeCounts.range2500to5000 },
+                  { id: 'above-5000', label: translate('Above ₹5,000'), count: priceRangeCounts.above5000 }
                 ].map((pill) => (
                   <button
                     key={pill.id}
@@ -507,13 +509,13 @@ export const CustomerDashboardPage: React.FC = () => {
 
               {/* Results Count */}
               <div className="flex items-center justify-between text-xs text-stone-500 font-semibold border-t border-stone-100 pt-3">
-                <span>Found {filteredProducts.length} handcrafted items:</span>
+                <span>{translate('Found')} {filteredProducts.length} {translate('handcrafted items:')}</span>
                 {selectedPriceRange !== 'all' && (
                   <button
                     onClick={() => setSelectedPriceRange('all')}
-                    className="text-amber-800 hover:text-amber-900 underline text-xs font-bold"
+                    className="text-amber-800 hover:text-amber-900 underline text-xs font-bold cursor-pointer"
                   >
-                    Clear Cost Filter
+                    {translate('Clear Cost Filter')}
                   </button>
                 )}
               </div>
@@ -521,7 +523,7 @@ export const CustomerDashboardPage: React.FC = () => {
               {/* Product Grid */}
               {filteredProducts.length === 0 ? (
                 <div className="text-center py-12 text-stone-400 text-xs">
-                  No products matched your search. Try changing your filters.
+                  {translate('No products matched your search. Try changing your filters.')}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
@@ -563,7 +565,7 @@ export const CustomerDashboardPage: React.FC = () => {
                                 ({getCostTierBadge(prod.publishedPrice || 0).label})
                               </span>
                             </div>
-                            <span className="text-[10px] text-stone-400">Stock: {prod.stock || 1}</span>
+                            <span className="text-[10px] text-stone-400">{translate('Stock:')} {prod.stock || 1}</span>
                           </div>
                         </div>
                       </div>
@@ -575,7 +577,7 @@ export const CustomerDashboardPage: React.FC = () => {
                           className="py-2 text-center bg-stone-100 hover:bg-stone-200 rounded-xl text-xs font-bold text-stone-800 flex items-center justify-center gap-1"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          <span>View Details</span>
+                          <span>{translate('View Details')}</span>
                         </Link>
                         <button
                           onClick={() => {
@@ -588,7 +590,7 @@ export const CustomerDashboardPage: React.FC = () => {
                           className="py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Contact Artisan</span>
+                          <span>{translate('Contact Artisan')}</span>
                         </button>
                       </div>
                     </div>

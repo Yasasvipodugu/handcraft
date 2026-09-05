@@ -56,7 +56,7 @@ import {
 
 export const AiProductStudio: React.FC = () => {
   const { currentUser, currentArtisan, switchRole } = useAuth();
-  const { t } = useLanguage();
+  const { t, translate } = useLanguage();
   const { showToast } = useNotifications();
   const navigate = useNavigate();
 
@@ -129,8 +129,30 @@ export const AiProductStudio: React.FC = () => {
   const [detectedStudioName, setDetectedStudioName] = useState<string>('Luxury Watch & Horology Studio');
   const [isolationSensitivity, setIsolationSensitivity] = useState<IsolationSensitivity>('deep-clean');
   const sliderContainerRef = useRef<HTMLDivElement>(null);
+  const [sliderDimensions, setSliderDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const lastProcessedKeyRef = useRef<string>('');
   const isProcessingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    const updateDims = () => {
+      if (sliderContainerRef.current) {
+        setSliderDimensions({
+          width: sliderContainerRef.current.clientWidth,
+          height: sliderContainerRef.current.clientHeight
+        });
+      }
+    };
+    updateDims();
+    const ro = new ResizeObserver(updateDims);
+    if (sliderContainerRef.current) {
+      ro.observe(sliderContainerRef.current);
+    }
+    window.addEventListener('resize', updateDims);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateDims);
+    };
+  }, [originalImage, cutoutDataUrl, enhancedImageDataUrl, activeStageMode]);
 
   // STEP 5: Price Recommendation State
   const [materialCost, setMaterialCost] = useState<number>(850);
@@ -817,7 +839,7 @@ export const AiProductStudio: React.FC = () => {
                         className="py-3.5 px-4 min-h-[44px] rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                       >
                         <Camera className="w-4 h-4" />
-                        <span>TAKE PHOTO</span>
+                        <span>{translate('TAKE PHOTO')}</span>
                       </button>
 
                       <button
@@ -826,7 +848,7 @@ export const AiProductStudio: React.FC = () => {
                         className="py-3.5 px-4 min-h-[44px] rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer border border-stone-200"
                       >
                         <Upload className="w-4 h-4" />
-                        <span>UPLOAD FROM GALLERY</span>
+                        <span>{translate('UPLOAD FROM GALLERY')}</span>
                       </button>
                     </div>
 
@@ -906,7 +928,7 @@ export const AiProductStudio: React.FC = () => {
                     onClick={() => setCurrentStep(2)}
                     className="px-6 py-3.5 min-h-[44px] rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
                   >
-                    <span>Proceed to AI Studio & Background</span>
+                    <span>{translate('Proceed to AI Studio & Background')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -921,10 +943,10 @@ export const AiProductStudio: React.FC = () => {
                 <div>
                   <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
                     <Sliders className="w-5 h-5 text-amber-700" />
-                    <span>Step 2 — Real AI Background Replacement & Studio Selection</span>
+                    <span>{translate('Step 2 — Real AI Background Replacement & Studio Selection')}</span>
                   </h3>
                   <p className="text-xs text-stone-500 mt-1">
-                    Your original background (room, floor, or clutter) is completely removed. Your authentic craft item is preserved and placed into a matching studio environment.
+                    {translate('Your original background (room, floor, or clutter) is completely removed. Your authentic craft item is preserved and placed into a matching studio environment.')}
                   </p>
                 </div>
 
@@ -934,7 +956,7 @@ export const AiProductStudio: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-amber-400 font-extrabold text-xs">
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>{currentStage.label}</span>
+                        <span>{translate(currentStage.label)}</span>
                       </div>
                       <span className="text-[11px] font-mono text-stone-400">Stage {currentStage.step} of 7</span>
                     </div>
@@ -944,7 +966,7 @@ export const AiProductStudio: React.FC = () => {
                         style={{ width: `${(currentStage.step / 7) * 100}%` }}
                       />
                     </div>
-                    <p className="text-[11px] text-stone-300">{currentStage.detail}</p>
+                    <p className="text-[11px] text-stone-300">{translate(currentStage.detail)}</p>
                   </div>
                 )}
 
@@ -964,10 +986,10 @@ export const AiProductStudio: React.FC = () => {
                     }`}>
                       1
                     </span>
-                    <span>Phase 1: Remove Original Background (Cutout)</span>
+                    <span>{translate('Phase 1: Remove Original Background (Cutout)')}</span>
                     {cutoutDataUrl && (
                       <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full">
-                        ✓ Removed
+                        ✓ {translate('Background Removed')}
                       </span>
                     )}
                   </button>
@@ -990,9 +1012,9 @@ export const AiProductStudio: React.FC = () => {
                     }`}>
                       2
                     </span>
-                    <span>Phase 2: Change Background (AI Studio)</span>
+                    <span>{translate('Phase 2: Change Background (AI Studio)')}</span>
                     <span className="text-[10px] bg-amber-500/30 text-amber-200 font-bold px-2 py-0.5 rounded-full truncate max-w-[110px]">
-                      {detectedStudioName}
+                      {translate(detectedStudioName)}
                     </span>
                   </button>
                 </div>
@@ -1026,37 +1048,37 @@ export const AiProductStudio: React.FC = () => {
                             : (enhancedImageDataUrl || originalImage)
                         }
                         alt="Transformed Product View"
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain pointer-events-none select-none"
                       />
-                      <div className="absolute top-4 right-4 bg-amber-800/90 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-black shadow-md border border-amber-500/30 flex items-center gap-1.5">
+                      <div className="absolute top-4 right-4 bg-amber-800/90 backdrop-blur-xs text-white px-3 py-1 rounded-full text-xs font-black shadow-md border border-amber-500/30 flex items-center gap-1.5 z-20">
                         <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                         <span>
                           {activeStageMode === 'remove-bg'
-                            ? 'ORIGINAL BACKGROUND REMOVED (CUTOUT)'
-                            : `STUDIO: ${detectedStudioName.toUpperCase()}`}
+                            ? translate('ORIGINAL BACKGROUND REMOVED (CUTOUT)')
+                            : `${translate('STUDIO: ')}${detectedStudioName.toUpperCase()}`}
                         </span>
                       </div>
                     </div>
 
                     {/* Layer 2: Original Uploaded Image (Clipped by slider position) */}
                     <div
-                      className="absolute inset-y-0 left-0 overflow-hidden bg-stone-950"
+                      className="absolute inset-y-0 left-0 overflow-hidden bg-stone-950 pointer-events-none select-none z-10"
                       style={{ width: `${sliderPosition}%` }}
                     >
                       <div
-                        className="relative w-full h-full"
+                        className="relative flex items-center justify-center pointer-events-none select-none"
                         style={{
-                          width: sliderContainerRef.current?.clientWidth || 600,
-                          height: sliderContainerRef.current?.clientHeight || 450
+                          width: sliderDimensions.width ? `${sliderDimensions.width}px` : '100%',
+                          height: sliderDimensions.height ? `${sliderDimensions.height}px` : '100%'
                         }}
                       >
                         <img
                           src={originalImage}
                           alt="Original Raw"
-                          className="w-full h-full object-cover filter brightness-95"
+                          className="w-full h-full object-contain filter brightness-95 pointer-events-none select-none"
                         />
-                        <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-xs text-stone-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-md border border-stone-700">
-                          ORIGINAL PHOTO
+                        <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-xs text-stone-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-md border border-stone-700 z-20">
+                          {translate('ORIGINAL PHOTO')}
                         </div>
                       </div>
                     </div>
@@ -1074,7 +1096,7 @@ export const AiProductStudio: React.FC = () => {
 
                   {/* Range Slider for Accessibility */}
                   <div className="flex items-center gap-3 px-2">
-                    <span className="text-[11px] font-black text-stone-500 uppercase">Original</span>
+                    <span className="text-[11px] font-black text-stone-500 uppercase">{translate('Original Photo')}</span>
                     <input
                       type="range"
                       min={0}
@@ -1084,7 +1106,7 @@ export const AiProductStudio: React.FC = () => {
                       className="flex-1 accent-amber-700 cursor-pointer"
                     />
                     <span className="text-[11px] font-black text-amber-800 uppercase">
-                      {activeStageMode === 'remove-bg' ? 'Background Removed' : 'AI Studio Backdrop'}
+                      {activeStageMode === 'remove-bg' ? translate('Background Removed') : translate('AI Studio Backdrop')}
                     </span>
                   </div>
                 </div>
@@ -1095,10 +1117,10 @@ export const AiProductStudio: React.FC = () => {
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-xs">
                         <CheckCircle className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                        <span>Phase 1 Complete: Original Background Stripped Clean</span>
+                        <span>{translate('Phase 1 Complete: Original Background Stripped Clean')}</span>
                       </div>
                       <p className="text-[11px] text-emerald-800">
-                        Cardboard packaging, logos, blue text, shadows, and room clutter have been eliminated. You can now download the cutout or change the background in Phase 2.
+                        {translate('Cardboard packaging, logos, blue text, shadows, and room clutter have been eliminated. You can now download the cutout or change the background in Phase 2.')}
                       </p>
                     </div>
 
@@ -1109,7 +1131,7 @@ export const AiProductStudio: React.FC = () => {
                         className="px-3.5 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-900 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-100/60 shadow-xs cursor-pointer transition-colors"
                       >
                         <Download className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>Download PNG</span>
+                        <span>{translate('Download Cutout (.PNG)')}</span>
                       </button>
                       <button
                         type="button"
@@ -1120,7 +1142,7 @@ export const AiProductStudio: React.FC = () => {
                         }}
                         className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                       >
-                        <span>Change Background ➔</span>
+                        <span>{translate('Change Background ➔')}</span>
                       </button>
                     </div>
                   </div>
@@ -1140,7 +1162,7 @@ export const AiProductStudio: React.FC = () => {
                       className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Camera className="w-3.5 h-3.5 text-amber-700" />
-                      <span>Retake Photo</span>
+                      <span>{translate('Retake Photo')}</span>
                     </button>
 
                     {/* 2. Upload Another */}
@@ -1152,7 +1174,7 @@ export const AiProductStudio: React.FC = () => {
                       className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5 text-stone-600" />
-                      <span>Upload Another</span>
+                      <span>{translate('Upload Another')}</span>
                     </button>
 
                     {/* 3. Change Background */}
@@ -1167,7 +1189,7 @@ export const AiProductStudio: React.FC = () => {
                       className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Palette className="w-3.5 h-3.5 text-purple-700" />
-                      <span>Change Background</span>
+                      <span>{translate('Change Background')}</span>
                     </button>
 
                     {/* 4. Regenerate */}
@@ -1187,7 +1209,7 @@ export const AiProductStudio: React.FC = () => {
                       className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
-                      <span>Regenerate</span>
+                      <span>{translate('Regenerate')}</span>
                     </button>
 
                     {/* 5. Download Cutout PNG */}
@@ -1197,7 +1219,7 @@ export const AiProductStudio: React.FC = () => {
                       className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs border border-stone-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Download Cutout</span>
+                      <span>{translate('Download Cutout')}</span>
                     </button>
                   </div>
 
@@ -1216,7 +1238,7 @@ export const AiProductStudio: React.FC = () => {
                     className="px-6 py-2.5 min-h-[44px] rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-98 flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Use This Photo</span>
+                    <span>{translate('Use This Photo')}</span>
                   </button>
                 </div>
 

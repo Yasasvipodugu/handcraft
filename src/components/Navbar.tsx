@@ -30,7 +30,7 @@ export const Navbar: React.FC = () => {
   const { currentUser, logout } = useAuth();
   const { itemCount } = useCart();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, translate } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -101,7 +101,7 @@ export const Navbar: React.FC = () => {
                   </span>
                 </div>
                 <span className="text-[10px] text-stone-500 font-medium tracking-wide">
-                  Smart Cataloging & Market Linkage
+                  {translate('Smart Cataloging & Market Linkage')}
                 </span>
               </div>
             </Link>
@@ -173,7 +173,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <Package className="w-4 h-4" />
-                  <span>My Products</span>
+                  <span>{translate('My Products')}</span>
                 </Link>
 
                 <Link
@@ -326,7 +326,7 @@ export const Navbar: React.FC = () => {
                   <div className="flex items-center justify-between px-4 pb-2 border-b border-stone-100">
                     <div className="flex items-center gap-1.5">
                       <Bell className="w-4 h-4 text-amber-700" />
-                      <span className="font-bold text-stone-900 text-sm">Notifications</span>
+                      <span className="font-bold text-stone-900 text-sm">{translate('Notifications')}</span>
                       {unreadCount > 0 && (
                         <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded-full">
                           {unreadCount} new
@@ -338,7 +338,7 @@ export const Navbar: React.FC = () => {
                         onClick={markAllRead}
                         className="text-xs text-amber-700 hover:text-amber-900 font-medium"
                       >
-                        Mark all as read
+                        {translate('Mark all as read')}
                       </button>
                     )}
                   </div>
@@ -346,7 +346,7 @@ export const Navbar: React.FC = () => {
                   <div className="max-h-72 overflow-y-auto divide-y divide-stone-100">
                     {notifications.length === 0 ? (
                       <div className="py-8 text-center text-stone-400 text-xs">
-                        No notifications right now
+                        {translate('No notifications right now')}
                       </div>
                     ) : (
                       notifications.map((notif) => (
@@ -456,7 +456,7 @@ export const Navbar: React.FC = () => {
                           className="flex items-center gap-2 px-4 py-2 text-xs text-stone-700 hover:bg-amber-50 hover:text-amber-900 font-medium"
                         >
                           <Compass className="w-4 h-4 text-stone-400" />
-                          <span>My Products</span>
+                          <span>{translate('My Products')}</span>
                         </Link>
                         <Link
                           to="/artisan/orders"
@@ -487,7 +487,7 @@ export const Navbar: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2 text-xs text-purple-900 bg-purple-50 hover:bg-purple-100 font-bold"
                       >
                         <Shield className="w-4 h-4 text-purple-700" />
-                        <span>Admin Console</span>
+                        <span>{translate('Admin Console')}</span>
                       </Link>
                     )}
 
