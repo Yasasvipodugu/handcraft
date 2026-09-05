@@ -270,9 +270,11 @@ export const Navbar: React.FC = () => {
               >
                 <Globe className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
                 <span className="hidden sm:inline">
-                  {SUPPORTED_LANGUAGES.find((l) => l.code === language)?.label.split(' ')[0] || 'English'}
+                  {SUPPORTED_LANGUAGES.find((l) => l.code === language)?.label?.split(' ')[0] || 'English'}
                 </span>
-                <span className="sm:hidden uppercase text-[11px] font-extrabold">{language}</span>
+                <span className="sm:hidden uppercase text-[11px] font-extrabold">
+                  {SUPPORTED_LANGUAGES.find((l) => l.code === language)?.code || 'en'}
+                </span>
                 <ChevronDown className="w-3 h-3 text-stone-400" />
               </button>
 

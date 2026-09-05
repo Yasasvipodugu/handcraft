@@ -334,9 +334,21 @@ export async function processBackgroundReplacement(
     await new Promise((r) => setTimeout(r, 160));
   }
 
-  // 3. Compute Product Dimensions and Scale (74% - 82% frame occupancy)
-  const srcW = imgElement.naturalWidth || imgElement.width || 800;
-  const srcH = imgElement.naturalHeight || imgElement.height || 800;
+  // 3. Compute Product Dimensions and Scale (capped to 1200px max dimension for mobile speed & zero UI freezing)
+  const rawW = imgElement.naturalWidth || imgElement.width || 800;
+  const rawH = imgElement.naturalHeight || imgElement.height || 800;
+  const maxDim = 1200;
+  let srcW = rawW;
+  let srcH = rawH;
+  if (srcW > maxDim || srcH > maxDim) {
+    if (srcW >= srcH) {
+      srcH = Math.max(1, Math.round((srcH * maxDim) / srcW));
+      srcW = maxDim;
+    } else {
+      srcW = Math.max(1, Math.round((srcW * maxDim) / srcH));
+      srcH = maxDim;
+    }
+  }
   const srcAspect = srcW / srcH;
 
   const maxOccupancy = 0.78;

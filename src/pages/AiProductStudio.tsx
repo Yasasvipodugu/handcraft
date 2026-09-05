@@ -56,7 +56,8 @@ import {
   Paintbrush,
   Eraser,
   Undo2,
-  Redo2
+  Redo2,
+  AlertTriangle
 } from 'lucide-react';
 
 export const AiProductStudio: React.FC = () => {
@@ -133,9 +134,12 @@ export const AiProductStudio: React.FC = () => {
   const [currentStage, setCurrentStage] = useState<ProcessingStage>(PROCESSING_STAGES[0]);
   const [detectedStudioName, setDetectedStudioName] = useState<string>('Luxury Watch & Horology Studio');
   const [isolationSensitivity, setIsolationSensitivity] = useState<IsolationSensitivity>('deep-clean');
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const sliderContainerRef = useRef<HTMLDivElement>(null);
   const lastProcessedKeyRef = useRef<string>('');
   const isProcessingRef = useRef<boolean>(false);
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
 
   // Manual Cutout Touch-Up State
   const [rawCutoutDataUrl, setRawCutoutDataUrl] = useState<string>('');
@@ -146,6 +150,7 @@ export const AiProductStudio: React.FC = () => {
   const [redoStack, setRedoStack] = useState<string[]>([]);
   const touchCanvasRef = useRef<HTMLCanvasElement>(null);
   const isPaintingRef = useRef<boolean>(false);
+  const recognitionRef = useRef<any>(null);
 
   // STEP 5: Price Recommendation State
   const [materialCost, setMaterialCost] = useState<number>(850);
@@ -426,6 +431,7 @@ export const AiProductStudio: React.FC = () => {
       sens: IsolationSensitivity = isolationSensitivity,
       force: boolean = false
     ) => {
+      if (!imgSrc) return;
       const imageSig = `${imgSrc.length}_${imgSrc.slice(-30)}`;
       const processingKey = `${imageSig}-${cat}-${desc}-${bgStyle}-${ratio}-${sens}`;
       if (!force && lastProcessedKeyRef.current === processingKey) {
@@ -436,13 +442,14 @@ export const AiProductStudio: React.FC = () => {
       lastProcessedKeyRef.current = processingKey;
 
       setIsProcessingBackground(true);
+      setProcessingError(null);
       try {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.src = imgSrc;
-        await new Promise((res) => {
-          img.onload = res;
-          img.onerror = () => res(true);
+        await new Promise((res, rej) => {
+          img.onload = () => res(true);
+          img.onerror = () => rej(new Error('Failed to load image for processing'));
         });
 
         const result = await processBackgroundReplacement(
@@ -462,20 +469,34 @@ export const AiProductStudio: React.FC = () => {
         setDetectedStudioName(result.studioName);
         setUndoStack([]);
         setRedoStack([]);
-        showToast('Studio Backdrop Created ✨', `${result.studioName} ready.`, 'success');
-      } catch (err) {
+        showToastRef.current('Studio Backdrop Created ✨', `${result.studioName} ready.`, 'success');
+      } catch (err: any) {
         console.error('Background replacement failed:', err);
+        setProcessingError(err?.message || 'Image processing failed. Please try again.');
+        showToastRef.current(
+          'Processing Notice',
+          'Could not isolate product background. You can try again or use another photo.',
+          'warning'
+        );
       } finally {
         setIsProcessingBackground(false);
         isProcessingRef.current = false;
       }
     },
-    [isolationSensitivity, showToast]
+    [isolationSensitivity]
   );
 
-  // Auto-run background replacement when Step 2 is opened or image/style changes
+  // One-time initial processing for default demo image when entering Step 2
+  const hasInitializedDemoRef = useRef<boolean>(false);
   useEffect(() => {
-    if (currentStep === 2 && originalImage) {
+    if (
+      currentStep === 2 &&
+      !hasInitializedDemoRef.current &&
+      !enhancedImageDataUrl &&
+      !cutoutDataUrl &&
+      !isProcessingRef.current
+    ) {
+      hasInitializedDemoRef.current = true;
       executeBackgroundReplacement(
         originalImage,
         category,
@@ -487,12 +508,14 @@ export const AiProductStudio: React.FC = () => {
     }
   }, [
     currentStep,
+    enhancedImageDataUrl,
+    cutoutDataUrl,
     originalImage,
+    category,
+    generatedDescription,
     backgroundStyle,
     aspectRatio,
     isolationSensitivity,
-    category,
-    generatedDescription,
     executeBackgroundReplacement
   ]);
 
@@ -628,12 +651,27 @@ export const AiProductStudio: React.FC = () => {
     }
 
     if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
       setIsListening(false);
+      setVoiceState('idle');
       return;
     }
 
     try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
+
       const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
       recognition.continuous = false;
       recognition.interimResults = true;
 
@@ -665,12 +703,14 @@ export const AiProductStudio: React.FC = () => {
         console.error('Speech recognition error', event.error);
         setIsListening(false);
         setVoiceState('idle');
+        recognitionRef.current = null;
       };
 
       recognition.onend = () => {
         setIsListening(false);
         setVoiceState('completed');
-        showToast('Recording Complete ✓', 'Telugu transcript captured. You can edit or translate to English.', 'success');
+        recognitionRef.current = null;
+        showToast('Recording Complete ✓', 'Transcript captured. You can edit or translate to English.', 'success');
       };
 
       recognition.start();
@@ -678,8 +718,20 @@ export const AiProductStudio: React.FC = () => {
       console.error(e);
       setIsListening(false);
       setVoiceState('idle');
+      recognitionRef.current = null;
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
 
   // Record Telugu speech again
   const handleRecordAgain = () => {
@@ -1210,6 +1262,45 @@ export const AiProductStudio: React.FC = () => {
                     {translate('Your original background (room, floor, or clutter) is completely removed. Your authentic craft item is preserved and placed into a matching studio environment.')}
                   </p>
                 </div>
+
+                {/* Processing Error Banner */}
+                {processingError && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+                    <div className="flex items-center gap-2.5">
+                      <AlertTriangle className="w-5 h-5 text-amber-700 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold">{translate('Image processing failed. Please try again.')}</p>
+                        <p className="text-[11px] text-amber-800">{processingError}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          executeBackgroundReplacement(
+                            originalImage,
+                            category,
+                            generatedDescription,
+                            backgroundStyle,
+                            aspectRatio,
+                            isolationSensitivity,
+                            true
+                          )
+                        }
+                        className="px-3 py-1.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs shadow-xs cursor-pointer"
+                      >
+                        {translate('Try Again')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => galleryInputRef.current?.click()}
+                        className="px-3 py-1.5 rounded-xl bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 font-bold text-xs cursor-pointer"
+                      >
+                        {translate('Upload Another Image')}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Multi-Stage Processing Visual Indicator */}
                 {isProcessingBackground && (

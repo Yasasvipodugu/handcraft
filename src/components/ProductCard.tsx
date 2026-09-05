@@ -99,7 +99,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
             <span className="text-[11px] text-stone-400 flex items-center gap-0.5 truncate">
               <MapPin className="w-3 h-3 flex-shrink-0" />
-              {product.artisanLocation.split(',')[0]}
+              {product.artisanLocation ? product.artisanLocation.split(',')[0] : 'India'}
             </span>
           </div>
 

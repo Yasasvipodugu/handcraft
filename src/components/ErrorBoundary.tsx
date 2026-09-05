@@ -1,4 +1,4 @@
-﻿import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { RotateCcw, AlertTriangle } from 'lucide-react';
 
 interface Props {
@@ -26,10 +26,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleReset = () => {
     try {
-      localStorage.removeItem('kala_current_user');
-      localStorage.removeItem('kala_users');
-      localStorage.removeItem('kala_artisans');
-      localStorage.removeItem('kala_initialized_v2');
+      localStorage.clear();
+      sessionStorage.clear();
     } catch (e) {
       // ignore
     }

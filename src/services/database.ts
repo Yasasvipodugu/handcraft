@@ -255,7 +255,7 @@ class KalaDatabase {
     }
 
     const passwordHash = await hashPasswordClient(userData.password);
-    const locationParts = userData.location.split(',').map((s) => s.trim());
+    const locationParts = (userData.location || '').split(',').map((s) => s.trim());
     const state = locationParts[locationParts.length - 1] || 'India';
     const district = locationParts[0] || 'Cluster';
 

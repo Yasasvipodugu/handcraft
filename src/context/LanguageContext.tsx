@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SupportedLanguage, TRANSLATIONS, Translations, translateText } from '../locales/translations';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { SupportedLanguage, SUPPORTED_LANGUAGES, TRANSLATIONS, Translations, translateText } from '../locales/translations';
 
 interface LanguageContextType {
   language: SupportedLanguage;
@@ -10,21 +10,40 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const VALID_LANGUAGE_CODES: Set<string> = new Set(SUPPORTED_LANGUAGES.map((l) => l.code));
+
+function getSafeInitialLanguage(): SupportedLanguage {
+  try {
+    const stored = localStorage.getItem('kala_language');
+    if (stored && VALID_LANGUAGE_CODES.has(stored)) {
+      return stored as SupportedLanguage;
+    }
+  } catch {}
+  return 'en';
+}
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<SupportedLanguage>(() => {
-    return (localStorage.getItem('kala_language') as SupportedLanguage) || 'en';
-  });
+  const [language, setLanguageState] = useState<SupportedLanguage>(getSafeInitialLanguage);
 
-  const setLanguage = (lang: SupportedLanguage) => {
-    setLanguageState(lang);
-    localStorage.setItem('kala_language', lang);
-  };
+  const setLanguage = useCallback((lang: SupportedLanguage) => {
+    if (VALID_LANGUAGE_CODES.has(lang)) {
+      setLanguageState(lang);
+      try {
+        localStorage.setItem('kala_language', lang);
+      } catch {}
+    }
+  }, []);
 
-  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
-  const translate = (text: string) => translateText(language, text);
+  const t = useMemo(() => TRANSLATIONS[language] || TRANSLATIONS.en, [language]);
+  const translate = useCallback((text: string) => translateText(language, text), [language]);
+
+  const value = useMemo(
+    () => ({ language, setLanguage, t, translate }),
+    [language, setLanguage, t, translate]
+  );
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, translate }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
